@@ -89,34 +89,13 @@ const ym=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 const lab=m=>MN[+m.slice(5)-1]+' '+m.slice(0,4);
 const add=(m,k)=>ym(new Date(+m.slice(0,4),+m.slice(5)-1+k,1));
 const rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
-const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let S={rooms:[],pay:{}}; let srcQuery = '';
 try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
 const today=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 let LAST=localStorage.getItem(KEY+'-last')||'';
 const setLast=c=>{LAST=c;try{localStorage.setItem(KEY+'-last',c)}catch(e){}};
-
-// Default Telegram Config
-const TG_DEFAULT = {
-  t: '7494826619:AAEf2jAPZsEnMVmc2kAxSAJVbIcAUX-IbBw',
-  c: '-1004406425017',
-  a: '-1003967854319',
-  j: 0,
-  auto: true
-};
-
-let TG = Object.assign({}, TG_DEFAULT);
-try{
-  const storedTG = localStorage.getItem(KEY+'-tg');
-  if(storedTG){
-    TG = Object.assign({}, TG_DEFAULT, JSON.parse(storedTG));
-  } else {
-    localStorage.setItem(KEY+'-tg', JSON.stringify(TG));
-  }
-}catch(e){}
-
-let UPD=null;
 function save(...ks){
   try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem(KEY+'-at',String(Date.now()))}catch(e){}
   schedulePush();
@@ -171,7 +150,7 @@ function vSet(){
   <div class="gr"><small>Blok</small><small>Lantai</small><small>Kamar</small><small>Harga/bulan</small><span></span></div>${gRows.map(row).join('')}
   <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" data-gadd="b">+ Blok</button><button class="danger" style="background:var(--bg);color:var(--tx)" data-gadd="f">+ Lantai</button><button class="pri" id="go">Buat kamar</button></div>
   <small style="margin-top:10px">Contoh: blok A lantai 1 isi 10 kamar, blok B lantai 2 isi 20 kamar, jadi kodenya A101 sampai A110 dan B201 sampai B220. Kamar yang sudah ada tidak ditimpa. Nama penghuni diisi dengan mengetuk kamar.</small></div>
-  ${vStruct()}<h2>Telegram</h2>${vShare()}<h2>Data & Laporan</h2><div class="card"><small style="margin:10px 0">${tgOn()?'Data disinkronkan lewat Telegram.':'Data tersimpan di HP ini. Isi pengaturan Telegram supaya bisa sinkron antar HP.'}</small><div class="btns" style="margin-bottom:10px;"><button class="pri" id="btnExportCSV" style="background:#27ae60;color:#fff;">📊 Ekspor Data (Excel/CSV)</button></div><button class="danger" id="rs">Hapus semua data</button></div>`;
+  ${vStruct()}<h2>Telegram</h2>${vShare()}${vApp()}<h2>Data & Laporan</h2><div class="card"><small style="margin:10px 0">${tgOn()?'Data disinkronkan lewat Telegram.':'Data tersimpan di HP ini. Isi pengaturan Telegram supaya bisa sinkron antar HP.'}</small><div class="btns" style="margin-bottom:10px;"><button class="pri" id="btnExportCSV" style="background:#27ae60;color:#fff;">📊 Ekspor Data (Excel/CSV)</button></div><button class="danger" id="rs">Hapus semua data</button></div>`;
 }
 const gl=()=>{const g={};S.rooms.forEach(r=>{const k=r.block+'|'+r.floor;(g[k]=g[k]||{b:r.block,f:r.floor,rs:[]}).rs.push(r)});
   return Object.values(g).sort((x,y)=>String(x.b).localeCompare(String(y.b))||x.f-y.f)};
@@ -211,18 +190,14 @@ function report(){
   const oc=S.rooms.filter(r=>occIn(r,cur)),got=oc.reduce((a,r)=>a+amt(r,cur),0),kur=oc.reduce((a,r)=>a+left(r,cur),0);
   const ls=oc.filter(r=>!paid(r,cur)).sort((a,b)=>a.code.localeCompare(b.code,'id',{numeric:true})).map(r=>'- '+r.code+' '+r.name+': '+(amt(r,cur)?'kurang '+rp(left(r,cur)):'belum bayar'));
   const tg=S.rooms.map(r=>({r,m:owed(r)})).filter(x=>x.m.length),tot=tg.reduce((a,x)=>a+x.m.reduce((s,m)=>s+left(x.r,m),0),0);
-  return ['Laporan bayar kamar '+lab(cur),'Terkumpul '+rp(got)+', kurang '+rp(kur),ls.length?'Belum lunas bulan ini:
-'+ls.join('
-'):'Semua kamar berpenghuni sudah lunas bulan ini','Total tunggakan semua bulan: '+rp(tot)+' ('+tg.length+' kamar)'].join('
-
-');
+  return ['Laporan bayar kamar '+lab(cur),'Terkumpul '+rp(got)+', kurang '+rp(kur),ls.length?'Belum lunas bulan ini:\n'+ls.join('\n'):'Semua kamar berpenghuni sudah lunas bulan ini','Total tunggakan semua bulan: '+rp(tot)+' ('+tg.length+' kamar)'].join('\n\n');
 }
 function getLastFileInfoText(){
   try{
     const raw=localStorage.getItem(KEY+'-last-sync-file');
     if(!raw)return 'Belum ada riwayat file tersimpan.';
     const info=JSON.parse(raw);
-    const dateStr=info.time?new Date(info.time).toLocaleString('id-ID'):'';
+    const dateStr=info.time?wib(info.time).d+' '+wib(info.time).h+' WIB':'';
     return 'File Terakhir: '+(info.name||'cadangan.json')+(dateStr?' ('+dateStr+')':'');
   }catch(e){return 'Belum ada riwayat file tersimpan.';}
 }
@@ -243,6 +218,7 @@ function applySyncData(d,sourceName){
       data:d
     }));
   }catch(e){}
+  setDirty(false);
   render();
   toast('Sinkronisasi berhasil: '+(sourceName||'File'));
 }
@@ -263,241 +239,372 @@ function vShare(){
   const T=(k,l,ph)=>`<label>${l}<input data-tg="${k}" value="${esc(TG[k]||'')}" placeholder="${ph}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>`;
   const lastFileInfo=getLastFileInfoText();
   return `<div class="card">${T('t','Token bot Telegram','contoh: 123456:ABC-DEF')}${T('c','Chat ID saluran data (realtime, file terbaru)','contoh: -1001234567890')}${T('a','Chat ID saluran arsip (opsional, setiap kirim jadi file baru)','contoh: -1009876543210')}
-  <label>Jeda kirim arsip<select data-tg="j">${[[0,'Setiap ada perubahan'],[5,'5 menit'],[15,'15 menit'],[30,'30 menit'],[60,'1 jam'],[180,'3 jam'],[360,'6 jam'],[1440,'1 hari']].map(([v,l])=>`<option value="${v}"${+TG.j===+v?' selected':''}>${l}</option>`).join('')}</select></label>
+  <label>Jeda kirim arsip<select data-tg="j">${[[0,'Setiap ada perubahan'],[5,'5 menit'],[15,'15 menit'],[30,'30 menit'],[60,'1 jam'],[180,'3 jam'],[360,'6 jam'],[1440,'1 hari']].map(([v,l])=>`<option value="${v}"${TG.j===v?' selected':''}>${l}</option>`).join('')}</select></label>
   <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-tg="auto" style="width:auto;margin:0"${TG.auto?' checked':''}>Sinkron otomatis setiap ada perubahan</label>
   <h3 style="margin-top:16px">Pilihan Sinkronisasi & Impor Data</h3>
-  <small style="margin-bottom:8px">${esc(lastFileInfo)}</small>
+  <small style="margin-bottom:8px">Pilih file penyimpanan HP sendiri atau gunakan file terakhir dari saluran/riwayat.</small>
   <input type="file" id="syncFileInput" accept=".json,application/json" style="display:none">
-  <div class="btns" style="margin-bottom:8px">
-    <button class="pri" id="btnPickFile" style="background:var(--bg);color:var(--tx);border:1px solid var(--ln)">📁 Pilih File Lokal</button>
-    <button class="pri" id="btnFetchTelegram" style="background:var(--ac);color:var(--onac)">🔄 Ambil Data Telegram</button>
-  </div>
-  <button class="pri" id="btnUseLastFile" style="width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--ln)">⏪ Pakai File Riwayat Terakhir</button>
-  </div>`;
+  <div class="btns" style="margin-bottom:8px"><button class="pri" id="btnPickFile">Pilih File dari HP</button><button class="danger" style="background:var(--bg);color:var(--tx)" id="btnLastFile">Pakai File Terakhir</button></div>
+  <small style="margin-bottom:12px;color:var(--mu);">${esc(lastFileInfo)}</small>
+  <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" id="rb">Ambil dari Telegram</button><button class="pri" id="bk">Kirim cadangan</button></div>
+  <small id="tgs" style="margin:12px 0 0">${esc(TGS)}</small>
+  <small style="margin:14px 0 8px">Ambil dari Telegram menimpa data di HP ini. Laporan ${lab(cur)}:</small>
+  <textarea id="rpt" rows="8" readonly>${esc(report())}</textarea>
+  <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" id="cp">Salin</button><button class="pri" id="tg">Kirim laporan</button></div></div>`;
 }
-
+const TGK='kamar-tg';
+let TG={t:'',c:'',a:'',j:30,la:0,ad:false,auto:true,mid:0,fu:'',hold:0},TGS='Belum ada sinkron.';
+try{Object.assign(TG,JSON.parse(localStorage.getItem(TGK)||'{}'))}catch(e){}
+let dirty=localStorage.getItem(KEY+'-dirty')==='1';
+const tgSave=()=>{try{localStorage.setItem(TGK,JSON.stringify(TG))}catch(e){}};
+const setDirty=v=>{dirty=v;try{if(v)localStorage.setItem(KEY+'-dirty','1');else localStorage.removeItem(KEY+'-dirty')}catch(e){}};
 const tgOn=()=>!!(TG.t&&TG.c);
-let pushTimer=null;
-function schedulePush(){
-  if(!tgOn()||!TG.auto)return;
-  clearTimeout(pushTimer);
-  pushTimer=setTimeout(()=>pushTelegram(false),1500);
-}
-
-async function pushTelegram(isManual=false){
-  if(!TG.t||!TG.c)return isManual?toast('Token & Chat ID Saluran Data wajib diisi'):null;
-  const payload = {
-    rooms: S.rooms,
-    pay: S.pay,
-    last: LAST,
-    at: Date.now()
-  };
-  const jsonStr = JSON.stringify(payload, null, 2);
-  const blob = new Blob([jsonStr], {type: 'application/json'});
-  const form = new FormData();
-  form.append('chat_id', TG.c);
-  form.append('document', blob, 'catatan_kamar_backup.json');
-  form.append('caption', '📦 Backup Data Kamar - ' + new Date().toLocaleString('id-ID'));
-
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${TG.t}/sendDocument`, {
-      method: 'POST',
-      body: form
-    });
-    if(!res.ok) throw new Error('HTTP status ' + res.status);
-    if(isManual) toast('Berhasil kirim ke Telegram!');
-  } catch(e) {
-    console.warn('Gagal push Telegram:', e);
-    if(isManual) toast('Gagal kirim ke Telegram: ' + e.message);
+const lat=()=>+localStorage.getItem(KEY+'-at')||0;
+const wib=t=>{const w=new Date(t+7*36e5),p=n=>String(n).padStart(2,'0');return{d:p(w.getUTCDate())+'-'+p(w.getUTCMonth()+1)+'-'+w.getUTCFullYear(),h:p(w.getUTCHours())+'.'+p(w.getUTCMinutes())}};
+function fname(){const w=wib(lat()||Date.now());return (LAST||'KAMAR').replace(/[\\\/:*?"<>|]/g,'-')+'_'+w.d+'_'+w.h+' WIB.json'}
+function tgStat(s,err){TGS=s;const e=$('tgs');if(e){e.textContent=s;e.style.color=err?'var(--rd)':''}if(err)toast(s,5000)}
+const fd=o=>{const f=new FormData();for(const k in o)f.append(k,o[k]);return f};
+async function tg(m,f){
+  for(let n=0;n<2;n++){
+    const ac=new AbortController(),to=setTimeout(()=>ac.abort(),25000);let j;
+    try{j=await (await fetch('https://api.telegram.org/bot'+TG.t+'/'+m,{method:'POST',body:f,signal:ac.signal})).json()}
+    catch(e){throw new Error(e.name==='AbortError'?'koneksi terlalu lama':'tidak bisa terhubung ke Telegram, cek internet')}
+    finally{clearTimeout(to)}
+    if(j.ok)return j.result;
+    const mg=j.parameters&&j.parameters.migrate_to_chat_id;
+    const cid=f.has('chat_id')?f.get('chat_id'):'';
+    if(mg&&n===0&&cid){if(cid===TG.a)TG.a=String(mg);else TG.c=String(mg);tgSave();f.set('chat_id',String(mg));continue}
+    throw new Error(j.description||'Telegram menolak permintaan');
   }
 }
-
-async function fetchTelegramData(){
-  if(!TG.t){
-    return toast('Isi Token Bot Telegram terlebih dahulu');
-  }
-  toast('Mengambil data Telegram...', 3000);
-  const targetChannel = TG.c || TG_DEFAULT.c;
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${TG.t}/getChat?chat_id=${targetChannel}`);
-    if(!res.ok){
-      throw new Error('Telegram API status ' + res.status);
+const isOurs=pm=>!!(pm&&pm.document&&(/KAMAR-SYNC/.test(pm.caption||'')||/(WIB|cadangan-kamar)\.json$/.test(pm.document.file_name||'')));
+let pt=0,busy=false;
+function schedulePush(){setDirty(true);if(!tgOn()||!TG.auto)return;clearTimeout(pt);pt=setTimeout(()=>tgPush(false),3000)}
+async function tgPush(manual){
+  if(!tgOn())return tgStat('Isi token bot dan Chat ID dulu',true);
+  if(manual&&TG.hold){TG.hold=0;tgSave()}
+  if(TG.hold)return;
+  if(busy){clearTimeout(pt);pt=setTimeout(()=>tgPush(manual),2000);return}
+  busy=true;clearTimeout(pt);let warn='';
+  try{
+    if(!lat())localStorage.setItem(KEY+'-at',String(Date.now()));
+    const at=lat(),name=fname(),w=wib(at),cap='KAMAR-SYNC | terakhir diubah: '+(LAST||'-')+' | '+w.d+' '+w.h+' WIB';
+    const body=JSON.stringify({v:2,at,last:LAST,rooms:S.rooms,pay:S.pay}),blob=()=>new Blob([body],{type:'application/json'});
+    const pm=(await tg('getChat',fd({chat_id:TG.c}))).pinned_message;
+    const mid=isOurs(pm)?pm.message_id:TG.mid;let res=null;
+    if(mid){
+      const f=fd({chat_id:TG.c,message_id:mid,media:JSON.stringify({type:'document',media:'attach://file',caption:cap})});f.append('file',blob(),name);
+      try{res=await tg('editMessageMedia',f)}catch(e){if(/not modified/i.test(e.message))res={document:{file_unique_id:TG.fu}}}
     }
-    const data = await res.json();
-    toast('Terhubung ke saluran Telegram: ' + (data.result.title || targetChannel));
-  } catch(e) {
-    console.warn('Telegram fetch error (Failed to fetch/CORS):', e);
-    toast('Koneksi Telegram langsung dibatasi origin/CORS. Menggunakan fallback data lokal & saluran default.', 4000);
-  }
+    if(!res){
+      const f=fd({chat_id:TG.c,caption:cap});f.append('document',blob(),name);
+      res=await tg('sendDocument',f);TG.mid=res.message_id;
+      try{await tg('pinChatMessage',fd({chat_id:TG.c,message_id:res.message_id,disable_notification:'true'}))}
+      catch(e){warn='Terkirim, tapi bot gagal menyematkan pesan ('+e.message+'). Jadikan bot admin dengan izin menyematkan pesan.'}
+    }
+    if(res&&res.document)TG.fu=res.document.file_unique_id;
+    TG.ad=true;tgSave();if(at===lat())setDirty(false);
+    if(warn)tgStat(warn,true);else tgStat('Terkirim '+wib(Date.now()).h+' WIB: '+name);
+    if(manual&&!warn)toast('Cadangan terkirim ke Telegram');
+    if(TG.a&&(manual||archiveDue()))tgArchive();
+  }catch(e){tgStat('Gagal kirim: '+e.message,true)}
+  finally{busy=false}
 }
+async function tgPull(manual){
+  if(!tgOn())return tgStat('Isi token bot dan Chat ID dulu',true);
+  if(busy)return;busy=true;
+  try{
+    if(manual&&TG.hold){TG.hold=0;tgSave()}
+    const pm=(await tg('getChat',fd({chat_id:TG.c}))).pinned_message;
+    if(!isOurs(pm)){
+      if(manual)tgStat('Belum ada cadangan di pesan sematan grup. Pastikan bot admin dengan izin menyematkan pesan.',true);
+      else if(!TG.mid&&S.rooms.length)schedulePush();
+      return;
+    }
+    const doc=pm.document;
+    if(!manual&&doc.file_unique_id===TG.fu)return;
+    const info=await tg('getFile',fd({file_id:doc.file_id}));
+    const d=await (await fetch('https://api.telegram.org/file/bot'+TG.t+'/'+info.file_path)).json();
+    if(!Array.isArray(d.rooms)||!d.pay||typeof d.pay!=='object')throw new Error('File cadangan tidak valid');
+    if(!manual){
+      if(dirty)return;
+      if(!TG.fu&&S.rooms.length){TG.fu=doc.file_unique_id;TG.hold=1;tgSave();return tgStat('Data di HP ini dan di Telegram sama-sama ada. Tekan Kirim cadangan (menimpa Telegram) atau Ambil dari Telegram (menimpa HP ini).',true)}
+    }
+    TG.fu=doc.file_unique_id;tgSave();
+    try{localStorage.setItem(KEY+'-last-sync-file',JSON.stringify({name:doc.file_name||'saluran-telegram.json',time:Date.now(),data:d}))}catch(e){}
+    S={rooms:d.rooms,pay:d.pay};LAST=d.last||'';
+    try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem(KEY+'-at',String(d.at||Date.now()));localStorage.setItem(KEY+'-last',LAST)}catch(e){}
+    setDirty(false);
+    if(!(document.activeElement&&document.activeElement.closest('main')))render();
+    tgStat('Diperbarui dari Telegram '+wib(Date.now()).h+' WIB: '+(doc.file_name||''));
+    if(manual)toast('Data diambil dari Telegram');
+  }catch(e){if(manual)tgStat('Gagal ambil: '+e.message,true)}
+  finally{busy=false}
+}
+async function tgReport(){
+  if(!tgOn())return tgStat('Isi token bot dan Chat ID dulu',true);
+  try{await tg('sendMessage',fd({chat_id:TG.c,text:report()}));toast('Laporan terkirim ke Telegram')}catch(e){tgStat('Gagal kirim laporan: '+e.message,true)}
+}
+const payload=()=>JSON.stringify({v:2,at:lat()||Date.now(),last:LAST,rooms:S.rooms,pay:S.pay});
+const archiveDue=()=>!!(TG.a&&TG.ad&&(TG.j===0||Date.now()-TG.la>=TG.j*60000));
+let arching=false,exping=false;
+async function tgArchive(){
+  if(!TG.a||!tgOn()||arching)return;
+  arching=true;
+  try{
+    const w=wib(lat()||Date.now()),f=fd({chat_id:TG.a,caption:'ARSIP | terakhir diubah: '+(LAST||'-')+' | '+w.d+' '+w.h+' WIB'});
+    f.append('document',new Blob([payload()],{type:'application/json'}),fname());
+    await tg('sendDocument',f);TG.la=Date.now();TG.ad=false;tgSave();
+  }catch(e){tgStat('Gagal kirim arsip: '+e.message,true)}
+  finally{arching=false}
+}
+async function checkExpiry(){
+  if(exping||!tgOn())return;
+  const t=wib(Date.now()).d.split('-').reverse().join('-');
+  const L=S.rooms.filter(r=>occ(r)&&r.until&&r.until<=t&&r.nt!==r.until);
+  if(!L.length)return;
+  exping=true;let ch=false;
+  try{
+    for(const r of L){
+      const m=owed(r),k=m.reduce((a,x)=>a+left(r,x),0);
+      await tg('sendMessage',fd({chat_id:TG.c,text:'Masa sewa habis\nKamar '+r.code+' ('+r.name+')\nBerakhir: '+r.until.split('-').reverse().join('-')+'\nTunggakan: '+(m.length?m.length+' bulan, '+rp(k):'tidak ada')}));
+      (S.rooms.find(x=>x.id===r.id)||r).nt=r.until;ch=true;
+    }
+  }catch(e){tgStat('Gagal kirim pengingat masa sewa: '+e.message,true)}
+  if(ch)save('r');
+  exping=false;
+}
+const AN=window.Android;let UPD=null;
+async function chkUpd(manual){
+  if(!AN||!AN.repo()){if(manual)toast('Cek pembaruan hanya ada di aplikasi hasil build GitHub');return}
+  try{
+    const r=await fetch('https://api.github.com/repos/'+AN.repo()+'/actions/runs?status=success&per_page=1');
+    if(!r.ok)throw 0;
+    const run=((await r.json()).workflow_runs||[])[0],n=run?run.run_number:0;
+    if(n>AN.version()){UPD={n,url:'https://github.com/'+AN.repo()+'/releases/download/apk/CatatanBayarKamar.apk'};render()}
+    else if(manual)toast('Aplikasi sudah versi terbaru');
+  }catch(e){if(manual)toast('Tidak bisa cek pembaruan. Pastikan repositori GitHub berstatus Public.',5000)}
+}
+const vApp=()=>AN?`<h2>Aplikasi</h2><div class="card"><small style="margin:10px 0">Versi build ${AN.version()}</small><button class="pri" id="chk">Cek pembaruan</button></div>`:'';
+function tick(){
+  if(document.hidden||!tgOn()||busy||TG.hold)return;
+  if(dirty){if(TG.auto)tgPush(false)}else{tgPull(false);if(archiveDue())tgArchive()}
+  checkExpiry();
+}
+function initTG(){
+  chkUpd(false);tick();
+  setInterval(tick,15000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()});
+  window.addEventListener('focus',tick);
+}
+function gen(){
+  let n=0,bad=0,lc='';
+  gRows.forEach(x=>{const b=String(x.b).trim().toUpperCase(),f=Math.floor(+x.f),c=Math.floor(+x.n),rent=+x.r||0;
+    if(!b||f<1||c<1||c>99){bad++;return}
+    for(let i=1;i<=c;i++){const code=b+f+String(i).padStart(2,'0');
+      if(S.rooms.some(r=>r.code===code))continue;
+      S.rooms.push({id:uid(),block:b,floor:f,code,name:'',rent,since:nowYM});n++;lc=code}});
+  if(!n&&bad)return toast('Isi blok, lantai, dan jumlah kamar (1 sampai 99)');
+  if(lc)setLast(lc);save('r');tab='rooms';render();toast(n+' kamar dibuat');
+}
+const hist=r=>{let m=r.since||cur,a=[];const end=nowYM>cur?nowYM:cur;
+  while(m<=end&&a.length<120){a.push(m);m=add(m,1)}
+  return a.reverse().slice(0,18).map(m=>{const s=stat(r,m),g=amt(r,m);
+    const kwBtn = g>0 ? `<button data-kw="${m}" data-rid="${r.id}" style="border:1px solid var(--ac);color:var(--ac);background:var(--acb);border-radius:8px;padding:5px 8px;font-size:12px;margin-right:4px;">🧾 Kwitansi</button>` : '';
+    return `<div class="hr ${s[0]}"><div><b>${lab(m)}</b><small>${s[1]}</small></div><div class="pi">${kwBtn}<input type="number" inputmode="numeric" data-am="${m}" value="${g||''}" placeholder="Dibayar"><button data-full="${m}">Lunas</button></div></div>`}).join('')||'<small style="margin:8px 0">Belum masuk pada bulan ini.</small>'};
 
+function openKwitansi(roomId, month){
+  const r = S.rooms.find(x => x.id === roomId);
+  if(!r) return;
+  const payInfo = S.pay[r.id + '|' + month] || {};
+  const g = payInfo.a || 0;
+  const tgl = payInfo.d || today();
+  const kwNo = 'KW-' + r.code + '-' + month.replace('-', '');
+  const st = paid(r, month) ? 'LUNAS' : 'SEBAGIAN (Kurang ' + rp(left(r, month)) + ')';
+  
+  const txt = `================================
+     KWITANSI PEMBAYARAN KOS
+================================
+No. Kwitansi   : ${kwNo}
+Tanggal Bayar  : ${tgl}
+Nama Penghuni  : ${r.name || '-'}
+Kamar / Blok   : Kamar ${r.code} (Blok ${r.block}, Lt ${r.floor})
+Periode Bulan  : ${lab(month)}
+Harga Sewa     : ${rp(r.rent)}
+Jumlah Dibayar : ${rp(g)}
+Status         : ${st}
+================================
+Terima kasih atas pembayarannya!`;
+
+  $('sheet').innerHTML = `
+    <h2>🧾 Kwitansi Pembayaran</h2>
+    <small>Nomor: ${kwNo}</small>
+    <textarea id="kwTxt" rows="12" style="font-family:monospace;font-size:13px;margin:10px 0;width:100%;" readonly>${esc(txt)}</textarea>
+    <div class="btns">
+      <button class="pri" id="btnCopyKw">📋 Salin Kwitansi</button>
+      <button class="pri" id="btnWaKw" style="background:#25D366;color:#fff;">💬 Kirim WA</button>
+      <button class="danger" style="background:var(--bg);color:var(--tx)" data-close="1">Tutup</button>
+    </div>
+  `;
+  $('modal').hidden = false;
+  openId = null;
+}
+function openRoom(id){
+  const r=S.rooms.find(x=>x.id===id);if(!r)return;openId=id;
+  $('sheet').innerHTML=`<h2 id="ttl">${esc(r.name||'Kamar '+r.code)}</h2>
+  <small>Blok ${esc(r.block)} · Lantai ${esc(r.floor)}</small>
+  <label>Nama penghuni<input id="fn" value="${esc(r.name)}" placeholder="Kosongkan jika kamar kosong"></label>
+  <div class="two"><label>Kode kamar<input id="fc" value="${esc(r.code)}"></label><label>Harga per bulan<input id="fr" type="number" inputmode="numeric" value="${r.rent||''}"></label></div>
+  <div class="two"><label>Mulai tinggal<input id="fs" type="month" value="${r.since||cur}"></label><label>Masa sewa habis<input id="fu" type="date" value="${r.until||''}"></label></div>
+  <h3>Pembayaran</h3><div id="hist">${hist(r)}</div>
+  <div class="btns"><button class="danger" data-del="1">Hapus kamar</button><button class="pri" data-close="1">Selesai</button></div>`;
+  $('modal').hidden=false;
+}
+function closeM(){$('modal').hidden=true;openId=null;render()}
+let cy=2026,cmode='m';
+function calHTML(){
+  if(cmode==='y'){const ys=[];for(let y=cy-6;y<=cy+5;y++)ys.push(y);
+    return `<h2>Pilih tahun</h2><div class="cg">${ys.map(y=>`<button class="cb${y===+cur.slice(0,4)?' on':''}" data-cyr="${y}">${y}</button>`).join('')}</div>`}
+  return `<div class="cy"><button data-cs="-1">‹</button><button data-cyt="1">${cy}</button><button data-cs="1">›</button></div>
+  <div class="cg">${MN.map((n,i)=>{const m=cy+'-'+String(i+1).padStart(2,'0');return `<button class="cb${m===cur?' on':''}${m===nowYM?' td':''}" data-cm="${m}">${n.slice(0,3)}</button>`}).join('')}</div>
+  <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" data-cm="${nowYM}">Bulan ini</button><button class="pri" data-close="1">Tutup</button></div>`;
+}
+function openCal(){cy=+cur.slice(0,4);cmode='m';$('sheet').innerHTML=calHTML();openId=null;$('modal').hidden=false}
 function exportCSV(){
-  if(!S.rooms.length)return toast('Belum ada data kamar untuk diekspor');
-  let csv = 'Kode Kamar,Blok,Lantai,Penghuni,Harga Rent,Status Bulan Ini,Terbayar Bulan Ini\n';
+  if(!S.rooms.length) return toast('Belum ada data kamar untuk diekspor');
+  let csv = '\uFEFF"Kode Kamar","Blok","Lantai","Nama Penghuni","Harga Sewa (Rp)","Mulai Tinggal","Masa Sewa Habis","Bulan Tagihan","Dibayar (Rp)","Status","Tanggal Bayar"\n';
   S.rooms.forEach(r => {
-    const o = occIn(r, cur);
-    const s = stat(r, cur);
-    const terbayar = amt(r, cur);
-    csv += `"${r.code}","${r.block}","${r.floor}","${r.name||'Kosong'}","${r.rent||0}","${o?s[1]:'Kosong'}","${terbayar}"\n`;
+    let m = r.since || cur;
+    const end = nowYM > cur ? nowYM : cur;
+    const months = [];
+    while(m <= end && months.length < 120){
+      months.push(m);
+      m = add(m, 1);
+    }
+    months.forEach(mo => {
+      const g = amt(r, mo);
+      const payInfo = S.pay[r.id + '|' + mo] || {};
+      const s = stat(r, mo);
+      const row = [
+        `"${r.code}"`,
+        `"${r.block}"`,
+        `"${r.floor}"`,
+        `"${(r.name||'Kosong').replace(/"/g, '""')}"`,
+        r.rent || 0,
+        `"${r.since || ''}"`,
+        `"${r.until || ''}"`,
+        `"${lab(mo)}"`,
+        g,
+        `"${s[1]}"`,
+        `"${payInfo.d || ''}"`
+      ];
+      csv += row.join(',') + '\n';
+    });
   });
   const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Laporan_Kamar_${cur}.csv`;
+  a.download = `Rekap_CatatanBayarKamar_${today()}.csv`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  toast('File CSV berhasil diunduh');
+  toast('Data berhasil diekspor ke file CSV/Excel');
 }
-
-function openM(id){
-  openId=id;const r=S.rooms.find(x=>x.id===id);if(!r)return;
-  const o=occ(r),s=stat(r,cur);
-  $('sheet').innerHTML=`<h2>Kamar ${esc(r.code)} <small style="display:inline">Blok ${esc(r.block)} Lt ${esc(r.floor)}</small></h2>
-  <label>Nama Penghuni<input id="mName" value="${esc(r.name)}" placeholder="Kosongkan jika kamar belum ada yang isi"></label>
-  <div class="two"><label>Harga/Bulan<input type="number" inputmode="numeric" id="mRent" value="${r.rent||''}"></label>
-  <label>Mulai Sewa<input type="month" id="mSince" value="${r.since||nowYM}"></label></div>
-  <div class="btns" style="margin-bottom:12px"><button class="pri" id="mSave">Simpan Info Kamar</button></div>
-  <h3>Pembayaran Bulan ${lab(cur)}</h3>
-  <div class="card" style="padding:10px 14px;margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div><b>Status: ${s[1]}</b><small>Tercatat: ${rp(amt(r,cur))} / ${rp(r.rent)}</small></div>
-      <button class="pri" data-full="${cur}" style="padding:6px 12px;font-size:13px">Set Lunas</button>
-    </div>
-  </div>
-  <h3>Riwayat Pembayaran</h3><div id="hist">${hist(r)}</div>
-  <div class="btns" style="margin-top:16px"><button class="danger" data-del="1" style="width:100%">Hapus Kamar Ini</button></div>`;
-  $('modal').hidden=false;
-}
-
-function hist(r){
-  const ks=Object.keys(S.pay).filter(k=>k.startsWith(r.id+'|')).sort().reverse();
-  if(!ks.length)return '<small>Belum ada catatan pembayaran.</small>';
-  return ks.map(k=>{
-    const m=k.split('|')[1], p=S.pay[k];
-    return `<div class="hr ok"><div><b>${lab(m)}</b><small>Bayar: ${rp(p.a)} (${p.d||''})</small></div></div>`;
-  }).join('');
-}
-
-function closeM(){$('modal').hidden=true;openId=null}
 
 document.addEventListener('input',e=>{
-  const t=e.target;
-  if(t.id==='srcR'){
-    srcQuery=t.value;
+  if(e.target.id === 'srcR'){
+    srcQuery = e.target.value;
+    const pos = e.target.selectionStart;
     render();
-    const el=$('srcR');
-    if(el){el.focus();el.setSelectionRange(srcQuery.length,srcQuery.length)}
-    return;
-  }
-  if(t.dataset.gi!==undefined){
-    gRows[+t.dataset.gi][t.dataset.gk]=t.value;
-  }
-  if(t.dataset.sf!==undefined){
-    editGroup(t);
-  }
-  if(t.dataset.tg!==undefined){
-    const k=t.dataset.tg;
-    TG[k]=t.type==='checkbox'?t.checked:(k==='j'?+t.value:t.value.trim());
-    try{localStorage.setItem(KEY+'-tg',JSON.stringify(TG))}catch(ex){}
-  }
-});
-
-document.addEventListener('click',e=>{
-  const b=e.target.closest('button');if(!b)return;
-  const d=b.dataset;
-  if(b.id==='pm'){cur=add(cur,-1);render()}
-  else if(b.id==='nm'){cur=add(cur,1);render()}
-  else if(d.t){tab=d.t;render()}
-  else if(d.room){openM(d.room)}
-  else if(b.id==='go'){
-    gRows.forEach(g=>{
-      const cnt=+g.n||0, f=+g.f||1, bk=(g.b||'A').toUpperCase(), rt=+g.r||0;
-      for(let i=1;i<=cnt;i++){
-        const code=bk+f+String(i).padStart(2,'0');
-        if(!S.rooms.some(r=>r.code===code)){
-          S.rooms.push({id:uid(),block:bk,floor:f,code,name:'',rent:rt,since:nowYM});
-        }
-      }
-    });
-    save('r');render();toast('Kamar berhasil dibuat');
-  }
-  else if(d.gadd==='b'){
-    const lastBlock = gRows[gRows.length-1].b;
-    const nextBlock = String.fromCharCode(lastBlock.charCodeAt(0)+1);
-    gRows.push({b:nextBlock,f:'1',n:'10',r:''});
-    render();
-  }
-  else if(d.gadd==='f'){
-    const lastRow = gRows[gRows.length-1];
-    gRows.push({b:lastRow.b,f:String(+lastRow.f+1),n:'10',r:''});
-    render();
-  }
-  else if(b.id==='mSave'){
-    const r=S.rooms.find(x=>x.id===openId);
-    if(r){
-      r.name=$('mName').value.trim();
-      r.rent=+$('mRent').value||0;
-      r.since=$('mSince').value||nowYM;
-      save('r');render();toast('Info kamar diperbarui');closeM();
-    }
-  }
-  else if(b.id==='btnExportCSV'){exportCSV()}
-  else if(b.id==='btnPickFile'){$('syncFileInput').click()}
-  else if(b.id==='btnFetchTelegram'){fetchTelegramData()}
-  else if(b.id==='btnUseLastFile'){useLastSyncedFile()}
-  else if(b.id==='rs'){
-    if(d.a){
-      S={rooms:[],pay:{}};setLast('SEMUA');save();render();toast('Semua data dihapus');
-    }else{
-      d.a=1;b.textContent='Yakin hapus semua data? Tap sekali lagi';
-    }
-  }
-  else if(d.full){
-    const r=S.rooms.find(x=>x.id===openId);
-    if(r){
-      if(!(+r.rent))return toast('Isi harga sewa kamar dulu');
-      const k=r.id+'|'+d.full;
-      S.pay[k]={d:today(),a:+r.rent};
-      save(d.full);render();openM(r.id);toast('Pembayaran diset lunas');
-    }
-  }
-  else if(d.del){
-    const r=S.rooms.find(x=>x.id===openId);
-    if(r){
-      if(d.a){
-        S.rooms=S.rooms.filter(x=>x.id!==r.id);
-        Object.keys(S.pay).filter(k=>k.startsWith(r.id+'|')).forEach(k=>delete S.pay[k]);
-        save();render();closeM();toast('Kamar dihapus');
-      }else{
-        d.a=1;b.textContent='Yakin? Tap sekali lagi';
-      }
+    const input = $('srcR');
+    if(input){
+      input.focus();
+      try{ input.setSelectionRange(pos, pos); }catch(err){}
     }
   }
 });
-
 document.addEventListener('change',e=>{
   if(e.target.id==='syncFileInput'){
-    const file=e.target.files[0];
+    const file=e.target.files&&e.target.files[0];
     if(!file)return;
     const reader=new FileReader();
-    reader.onload=ex=>{
+    reader.onload=function(evt){
       try{
-        const data=JSON.parse(ex.target.result);
-        applySyncData(data,file.name);
+        const d=JSON.parse(evt.target.result);
+        applySyncData(d,file.name);
       }catch(err){
-        toast('Format file JSON salah: '+err.message,4000);
+        toast('Gagal membaca file: '+err.message,5000);
       }
+      e.target.value='';
     };
     reader.readAsText(file);
+    return;
   }
+  if(e.target.dataset.tg){const k=e.target.dataset.tg;TG[k]=e.target.type==='checkbox'?e.target.checked:k==='j'?+e.target.value:e.target.value.trim();tgSave();if(k!=='auto'&&tgOn()&&!S.rooms.length)tgPull(true);return}
+  const g=e.target.dataset;if(g.gi!==undefined){gRows[+g.gi][g.gk]=e.target.value;return}
+  if(g.sf){editGroup(e.target);return}
+  const r=S.rooms.find(x=>x.id===openId);if(!r)return;const i=e.target.id;
+  if(i==='fn'){const v=e.target.value.trim();if(v&&!r.name){r.since=cur;$('fs').value=cur}r.name=v;$('ttl').textContent=v||'Kamar '+r.code}
+  else if(i==='fc')r.code=e.target.value.trim()||r.code;
+  else if(i==='fr')r.rent=+e.target.value||0;
+  else if(i==='fs')r.since=e.target.value||r.since;
+  else if(i==='fu'){r.until=e.target.value;r.nt=''}
+  else if(g.am){const m=g.am,k=r.id+'|'+m,v=+e.target.value||0;
+    if(v>0)S.pay[k]={d:(S.pay[k]&&S.pay[k].d)||today(),a:v};else delete S.pay[k];
+    setLast(r.code);save(m);render();const row=e.target.closest('.hr'),s=stat(r,m);row.className='hr '+s[0];row.querySelector('small').textContent=s[1];return}
+  else return;
+  setLast(r.code);save('r');render();$('hist').innerHTML=hist(r);
 });
-
-$('modal').addEventListener('click',e=>{
-  if(e.target===$('modal'))closeM();
+document.addEventListener('click',e=>{
+  if(e.target.id==='modal')return closeM();
+  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  if(b.id==='pm'||b.id==='nm'){cur=add(cur,b.id==='pm'?-1:1);render();return}
+  if(d.t){tab=d.t;render();scrollTo(0,0);return}
+  if(b.id==='mlabel')return openCal();
+  if(d.cs){cy+=+d.cs;$('sheet').innerHTML=calHTML();return}
+  if(d.cyt){cmode='y';$('sheet').innerHTML=calHTML();return}
+  if(d.cyr){cy=+d.cyr;cmode='m';$('sheet').innerHTML=calHTML();return}
+  if(d.cm){cur=d.cm;closeM();return}
+  if(d.close&&!openId){closeM();return}
+  if(b.id==='upd')return AN.install(UPD.url);
+  if(b.id==='chk')return chkUpd(true);
+  if(d.room)return openRoom(d.room);
+  if(b.id==='go')return gen();
+  if(d.gadd){const l=gRows[gRows.length-1]||{b:'A',f:'1',n:'10',r:''};
+    if(d.gadd==='b'){const nb=l.b.length===1?String.fromCharCode(l.b.toUpperCase().charCodeAt(0)+1):l.b;gRows.push({b:nb,f:l.f,n:l.n,r:l.r})}
+    else gRows.push({b:l.b,f:String((+l.f||0)+1),n:l.n,r:l.r});
+    render();return}
+  if(d.gdel){
+    if(!d.a){d.a=1;b.textContent='✓';b.style.color='var(--rd)';toast('Tap sekali lagi untuk menghapus lantai ini beserta catatan bayarnya');return}
+    const ids=new Set(S.rooms.filter(r=>String(r.block)===d.gb&&String(r.floor)===d.gf).map(r=>r.id)),ks=Object.keys(S.pay).filter(k=>ids.has(k.split('|')[0]));
+    S.rooms=S.rooms.filter(r=>!ids.has(r.id));ks.forEach(k=>delete S.pay[k]);save('r',...new Set(ks.map(k=>k.split('|')[1])));render();return}
+  if(b.id==='tg')return tgReport();
+  if(b.id==='cp'){const t=$('rpt');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value).catch(()=>document.execCommand('copy'));else document.execCommand('copy');toast('Laporan disalin');return}
+  if(b.id==='bk')return tgPush(true);
+  if(b.id==='rb')return tgPull(true);
+  if(b.id==='btnPickFile'){const fi=$('syncFileInput');if(fi)fi.click();return}
+  if(b.id==='btnLastFile')return useLastSyncedFile();
+  if(b.id==='btnExportCSV')return exportCSV();
+  if(d.kw)return openKwitansi(d.rid, d.kw);
+  if(b.id==='btnCopyKw'){
+    const t=$('kwTxt');if(t){t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value).catch(()=>document.execCommand('copy'));else document.execCommand('copy');toast('Kwitansi disalin');}
+    return;
+  }
+  if(b.id==='btnWaKw'){
+    const t=$('kwTxt');if(t){window.open('https://wa.me/?text='+encodeURIComponent(t.value),'_blank');}
+    return;
+  }
+  if(d.grm!==undefined){gRows.splice(+d.grm,1);render();return}
+  if(b.id==='rs'){if(d.a){const ms=[...new Set(Object.keys(S.pay).map(k=>k.split('|')[1]))];S={rooms:[],pay:{}};setLast('SEMUA');save('r',...ms);render();toast('Data dihapus')}else{d.a=1;b.textContent='Yakin? Tap sekali lagi'}return}
+  const r=S.rooms.find(x=>x.id===openId);if(!r)return;
+  if(d.full){if(!(+r.rent))return toast('Isi harga per bulan dulu');const k=r.id+'|'+d.full;S.pay[k]={d:(S.pay[k]&&S.pay[k].d)||today(),a:+r.rent};setLast(r.code);save(d.full);render();$('hist').innerHTML=hist(r)}
+  else if(d.close)closeM();
+  else if(d.del){if(d.a){const ks=Object.keys(S.pay).filter(k=>k.startsWith(r.id+'|'));S.rooms=S.rooms.filter(x=>x.id!==r.id);ks.forEach(k=>delete S.pay[k]);setLast(r.code);save('r',...ks.map(k=>k.split('|')[1]));closeM()}else{d.a=1;b.textContent='Yakin? Tap lagi'}}
 });
-
 render();
+initTG();
 </script>
 </body>
 </html>
