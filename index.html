@@ -257,7 +257,7 @@ const DEFAULT_TG_TOKEN = '7494826619:AAEf2jAPZsEnMVmc2kAxSAJVbIcAUX-IbBw';
 const DEFAULT_TG_DATA = '-1004406425017';
 const DEFAULT_TG_ARSIP = '-1003967854319';
 
-let TG={t:DEFAULT_TG_TOKEN,c:DEFAULT_TG_DATA,a:DEFAULT_TG_ARSIP,j:30,la:0,ad:false,auto:true,mid:0,fu:'',hold:0},TGS='Belum ada sinkron.';
+let TG={t:DEFAULT_TG_TOKEN,c:DEFAULT_TG_DATA,a:DEFAULT_TG_ARSIP,j:30,la:0,ad:false,auto:true,mid:0,fu:''},TGS='Belum ada sinkron.';
 try{
   const saved=JSON.parse(localStorage.getItem(TGK)||'{}');
   Object.assign(TG,saved);
@@ -265,14 +265,13 @@ try{
   if(!TG.c) TG.c = DEFAULT_TG_DATA;
   if(!TG.a) TG.a = DEFAULT_TG_ARSIP;
 }catch(e){}
-try{Object.assign(TG,JSON.parse(localStorage.getItem(TGK)||'{}'))}catch(e){}
 let dirty=localStorage.getItem(KEY+'-dirty')==='1';
 const tgSave=()=>{try{localStorage.setItem(TGK,JSON.stringify(TG))}catch(e){}};
 const setDirty=v=>{dirty=v;try{if(v)localStorage.setItem(KEY+'-dirty','1');else localStorage.removeItem(KEY+'-dirty')}catch(e){}};
 const tgOn=()=>!!(TG.t&&TG.c);
 const lat=()=>+localStorage.getItem(KEY+'-at')||0;
 const wib=t=>{const w=new Date(t+7*36e5),p=n=>String(n).padStart(2,'0');return{d:p(w.getUTCDate())+'-'+p(w.getUTCMonth()+1)+'-'+w.getUTCFullYear(),h:p(w.getUTCHours())+'.'+p(w.getUTCMinutes())}};
-function fname(){const w=wib(lat()||Date.now());return (LAST||'KAMAR').replace(/[\\\/:*?"<>|]/g,'-')+'_'+w.d+'_'+w.h+' WIB.json'}
+function fname(){const w=wib(lat()||Date.now());return (LAST||'KAMAR').replace(/[\\/:*?"<>|]/g,'-')+'_'+w.d+'_'+w.h+' WIB.json'}
 function tgStat(s,err){TGS=s;const e=$('tgs');if(e){e.textContent=s;e.style.color=err?'var(--rd)':''}if(err)toast(s,5000)}
 const fd=o=>{const f=new FormData();for(const k in o)f.append(k,o[k]);return f};
 async function tg(m,f){
@@ -288,13 +287,11 @@ async function tg(m,f){
     throw new Error(j.description||'Telegram menolak permintaan');
   }
 }
-const isOurs=pm=>!!(pm&&pm.document&&(/KAMAR-SYNC/.test(pm.caption||'')||/(WIB|cadangan-kamar)\.json$/.test(pm.document.file_name||'')));
+const isOurs=pm=>!!(pm&&pm.document&&( /KAMAR|SYNC/i.test(pm.caption||'')||/\.json$/i.test(pm.document.file_name||'') ));
 let pt=0,busy=false;
-function schedulePush(){setDirty(true);if(!tgOn()||!TG.auto)return;clearTimeout(pt);pt=setTimeout(()=>tgPush(false),3000)}
+function schedulePush(){setDirty(true);if(!tgOn()||!TG.auto)return;clearTimeout(pt);pt=setTimeout(()=>tgPush(false),1500)}
 async function tgPush(manual){
   if(!tgOn())return tgStat('Isi token bot dan Chat ID dulu',true);
-  if(manual&&TG.hold){TG.hold=0;tgSave()}
-  if(TG.hold)return;
   if(busy){clearTimeout(pt);pt=setTimeout(()=>tgPush(manual),2000);return}
   busy=true;clearTimeout(pt);let warn='';
   try{
@@ -314,7 +311,7 @@ async function tgPush(manual){
       catch(e){warn='Terkirim, tapi bot gagal menyematkan pesan ('+e.message+'). Jadikan bot admin dengan izin menyematkan pesan.'}
     }
     if(res&&res.document)TG.fu=res.document.file_unique_id;
-    TG.ad=true;tgSave();if(at===lat())setDirty(false);
+    TG.ad=true;tgSave();setDirty(false);
     if(warn)tgStat(warn,true);else tgStat('Terkirim '+wib(Date.now()).h+' WIB: '+name);
     if(manual&&!warn)toast('Cadangan terkirim ke Telegram');
     if(TG.a&&(manual||archiveDue()))tgArchive();
@@ -325,7 +322,6 @@ async function tgPull(manual){
   if(!tgOn())return tgStat('Isi token bot dan Chat ID dulu',true);
   if(busy)return;busy=true;
   try{
-    if(manual&&TG.hold){TG.hold=0;tgSave()}
     const pm=(await tg('getChat',fd({chat_id:TG.c}))).pinned_message;
     if(!isOurs(pm)){
       if(manual)tgStat('Belum ada cadangan di pesan sematan grup. Pastikan bot admin dengan izin menyematkan pesan.',true);
@@ -333,22 +329,24 @@ async function tgPull(manual){
       return;
     }
     const doc=pm.document;
-    if(!manual&&doc.file_unique_id===TG.fu)return;
+    if(!manual&&doc.file_unique_id===TG.fu&&!dirty)return;
     const info=await tg('getFile',fd({file_id:doc.file_id}));
     const d=await (await fetch('https://api.telegram.org/file/bot'+TG.t+'/'+info.file_path)).json();
     if(!Array.isArray(d.rooms)||!d.pay||typeof d.pay!=='object')throw new Error('File cadangan tidak valid');
-    if(!manual){
-      if(dirty)return;
-      if(!TG.fu&&S.rooms.length){TG.fu=doc.file_unique_id;TG.hold=1;tgSave();return tgStat('Data di HP ini dan di Telegram sama-sama ada. Tekan Kirim cadangan (menimpa Telegram) atau Ambil dari Telegram (menimpa HP ini).',true)}
+    
+    const cloudAt=+d.at||0, localAt=lat();
+    if(manual || cloudAt > localAt || (!dirty && doc.file_unique_id !== TG.fu)){
+      TG.fu=doc.file_unique_id;TG.mid=pm.message_id;tgSave();
+      try{localStorage.setItem(KEY+'-last-sync-file',JSON.stringify({name:doc.file_name||'saluran-telegram.json',time:Date.now(),data:d}))}catch(e){}
+      S={rooms:d.rooms,pay:d.pay};LAST=d.last||'';
+      try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem(KEY+'-at',String(cloudAt||Date.now()));localStorage.setItem(KEY+'-last',LAST)}catch(e){}
+      setDirty(false);
+      if(!(document.activeElement&&document.activeElement.closest('main')))render();
+      tgStat('Diperbarui dari Telegram '+wib(Date.now()).h+' WIB: '+(doc.file_name||''));
+      if(manual)toast('Data diambil dari Telegram');
+    } else if(dirty && localAt > cloudAt){
+      schedulePush();
     }
-    TG.fu=doc.file_unique_id;tgSave();
-    try{localStorage.setItem(KEY+'-last-sync-file',JSON.stringify({name:doc.file_name||'saluran-telegram.json',time:Date.now(),data:d}))}catch(e){}
-    S={rooms:d.rooms,pay:d.pay};LAST=d.last||'';
-    try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem(KEY+'-at',String(d.at||Date.now()));localStorage.setItem(KEY+'-last',LAST)}catch(e){}
-    setDirty(false);
-    if(!(document.activeElement&&document.activeElement.closest('main')))render();
-    tgStat('Diperbarui dari Telegram '+wib(Date.now()).h+' WIB: '+(doc.file_name||''));
-    if(manual)toast('Data diambil dari Telegram');
   }catch(e){if(manual)tgStat('Gagal ambil: '+e.message,true)}
   finally{busy=false}
 }
@@ -398,13 +396,13 @@ async function chkUpd(manual){
 }
 const vApp=()=>AN?`<h2>Aplikasi</h2><div class="card"><small style="margin:10px 0">Versi build ${AN.version()}</small><button class="pri" id="chk">Cek pembaruan</button></div>`:'';
 function tick(){
-  if(document.hidden||!tgOn()||busy||TG.hold)return;
+  if(document.hidden||!tgOn()||busy)return;
   if(dirty){if(TG.auto)tgPush(false)}else{tgPull(false);if(archiveDue())tgArchive()}
   checkExpiry();
 }
 function initTG(){
   chkUpd(false);tick();
-  setInterval(tick,15000);
+  setInterval(tick,5000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()});
   window.addEventListener('focus',tick);
 }
