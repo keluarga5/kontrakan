@@ -253,8 +253,15 @@ function vShare(){
   <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" id="cp">Salin</button><button class="pri" id="tg">Kirim laporan</button></div></div>`;
 }
 const TGK='kamar-tg';
-let TG={t:'',c:'',a:'',j:30,la:0,ad:false,auto:true,mid:0,fu:'',hold:0},TGS='Belum ada sinkron.';
-try{Object.assign(TG,JSON.parse(localStorage.getItem(TGK)||'{}'))}catch(e){}
+const DEFAULT_TG={t:'7494826619:AAEf2jAPZsEnMVmc2kAxSAJVbIcAUX-IbBw',c:'-1004406425017',a:'-1003967854319',j:30,la:0,ad:false,auto:true,mid:0,fu:'',hold:0};
+let TG=Object.assign({},DEFAULT_TG),TGS='Belum ada sinkron.';
+try{
+  const stored=JSON.parse(localStorage.getItem(TGK)||'{}');
+  Object.assign(TG,stored);
+  if(!TG.t) TG.t=DEFAULT_TG.t;
+  if(!TG.c) TG.c=DEFAULT_TG.c;
+  if(!TG.a) TG.a=DEFAULT_TG.a;
+}catch(e){}
 let dirty=localStorage.getItem(KEY+'-dirty')==='1';
 const tgSave=()=>{try{localStorage.setItem(TGK,JSON.stringify(TG))}catch(e){}};
 const setDirty=v=>{dirty=v;try{if(v)localStorage.setItem(KEY+'-dirty','1');else localStorage.removeItem(KEY+'-dirty')}catch(e){}};
