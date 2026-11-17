@@ -91,19 +91,6 @@ const add=(m,k)=>ym(new Date(+m.slice(0,4),+m.slice(5)-1+k,1));
 const rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let S={rooms:[],pay:{}}; let srcQuery = '';
-
-let authRole = localStorage.getItem(KEY+'-role') || 'owner';
-let ownerPin = localStorage.getItem(KEY+'-pin') || '1234';
-const checkOwner = (actionName, callback) => {
-  if (authRole === 'owner') return callback();
-  const pin = prompt('Aksi ini memerlukan PIN Owner (' + actionName + '):');
-  if (pin === ownerPin) {
-    callback();
-  } else if (pin !== null) {
-    toast('PIN Owner salah!', 3000);
-  }
-};
-
 try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
 const today=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -159,21 +146,7 @@ function vArr(){
 let gRows=[{b:'A',f:'1',n:'10',r:''}];
 function vSet(){
   const row=(x,i)=>'<div class="gr">'+[['b','text'],['f','number'],['n','number'],['r','number']].map(([k,t])=>`<input type="${t}" ${t==='number'?'inputmode="numeric"':'maxlength="4"'} data-gi="${i}" data-gk="${k}" value="${esc(x[k])}">`).join('')+`<button class="x" data-grm="${i}" aria-label="Hapus baris">✕</button></div>`;
-  return `<h2>Hak Akses & Keamanan</h2>
-  <div class="card">
-    <label style="margin-bottom:8px">Peran Pengguna
-      <select id="selRole" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--ln);background:var(--bg);color:var(--tx);margin-top:4px">
-        <option value="owner" ${authRole==='owner'?'selected':''}>👑 Owner (Pemilik Penuh)</option>
-        <option value="staff" ${authRole==='staff'?'selected':''}>🛡️ Penjaga Kos (Staff)</option>
-      </select>
-    </label>
-    <label>PIN Owner (4 digit)
-      <input id="inpPin" type="password" maxlength="4" value="${ownerPin}" placeholder="4 digit PIN" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--ln);background:var(--bg);color:var(--tx);margin-top:4px">
-    </label>
-    <small style="margin-top:8px">${authRole==='owner'?'Anda login sebagai Owner. Akses penuh ke seluruh fitur tanpa batasan.':'Anda login sebagai Penjaga Kos. Tindakan ubah harga, buat/hapus kamar, dan reset data memerlukan PIN Owner.'}</small>
-  </div>
-
-  <h2>Buat kamar</h2><div class="card"><small style="margin:10px 0">Satu baris untuk setiap blok dan lantai. Isi jumlah kamarnya sendiri-sendiri.</small>
+  return `<h2>Buat kamar</h2><div class="card"><small style="margin:10px 0">Satu baris untuk setiap blok dan lantai. Isi jumlah kamarnya sendiri-sendiri.</small>
   <div class="gr"><small>Blok</small><small>Lantai</small><small>Kamar</small><small>Harga/bulan</small><span></span></div>${gRows.map(row).join('')}
   <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" data-gadd="b">+ Blok</button><button class="danger" style="background:var(--bg);color:var(--tx)" data-gadd="f">+ Lantai</button><button class="pri" id="go">Buat kamar</button></div>
   <small style="margin-top:10px">Contoh: blok A lantai 1 isi 10 kamar, blok B lantai 2 isi 20 kamar, jadi kodenya A101 sampai A110 dan B201 sampai B220. Kamar yang sudah ada tidak ditimpa. Nama penghuni diisi dengan mengetuk kamar.</small></div>
@@ -280,15 +253,8 @@ function vShare(){
   <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" id="cp">Salin</button><button class="pri" id="tg">Kirim laporan</button></div></div>`;
 }
 const TGK='kamar-tg';
-const DEFAULT_TG={t:'7494826619:AAEf2jAPZsEnMVmc2kAxSAJVbIcAUX-IbBw',c:'-1004406425017',a:'-1003967854319',j:30,la:0,ad:false,auto:true,mid:0,fu:'',hold:0};
-let TG=Object.assign({},DEFAULT_TG),TGS='Belum ada sinkron.';
-try{
-  const stored=JSON.parse(localStorage.getItem(TGK)||'{}');
-  Object.assign(TG,stored);
-  if(!TG.t) TG.t=DEFAULT_TG.t;
-  if(!TG.c) TG.c=DEFAULT_TG.c;
-  if(!TG.a) TG.a=DEFAULT_TG.a;
-}catch(e){}
+let TG={t:'',c:'',a:'',j:30,la:0,ad:false,auto:true,mid:0,fu:'',hold:0},TGS='Belum ada sinkron.';
+try{Object.assign(TG,JSON.parse(localStorage.getItem(TGK)||'{}'))}catch(e){}
 let dirty=localStorage.getItem(KEY+'-dirty')==='1';
 const tgSave=()=>{try{localStorage.setItem(TGK,JSON.stringify(TG))}catch(e){}};
 const setDirty=v=>{dirty=v;try{if(v)localStorage.setItem(KEY+'-dirty','1');else localStorage.removeItem(KEY+'-dirty')}catch(e){}};
@@ -560,37 +526,6 @@ document.addEventListener('input',e=>{
   }
 });
 document.addEventListener('change',e=>{
-
-  if(e.target.id === 'selRole'){
-    const val = e.target.value;
-    if(val === 'staff'){
-      authRole = 'staff';
-      try{localStorage.setItem(KEY+'-role', 'staff')}catch(e){}
-      toast('Beralih ke Penjaga Kos (Staff)');
-      render();
-    } else {
-      const p = prompt('Masukkan PIN Owner untuk beralih ke mode Owner:');
-      if(p === ownerPin){
-        authRole = 'owner';
-        try{localStorage.setItem(KEY+'-role', 'owner')}catch(e){}
-        toast('Beralih ke Owner');
-        render();
-      } else {
-        if(p !== null) toast('PIN salah!', 3000);
-        e.target.value = authRole;
-      }
-    }
-    return;
-  }
-  if(e.target.id === 'inpPin'){
-    const p = e.target.value.trim();
-    if(p.length === 4){
-      ownerPin = p;
-      try{localStorage.setItem(KEY+'-pin', p)}catch(e){}
-      toast('PIN Owner berhasil diperbarui');
-    }
-    return;
-  }
   if(e.target.id==='syncFileInput'){
     const file=e.target.files&&e.target.files[0];
     if(!file)return;
@@ -636,7 +571,7 @@ document.addEventListener('click',e=>{
   if(b.id==='upd')return AN.install(UPD.url);
   if(b.id==='chk')return chkUpd(true);
   if(d.room)return openRoom(d.room);
-  if(b.id==='go')return checkOwner('Buat Kamar', ()=>gen());
+  if(b.id==='go')return gen();
   if(d.gadd){const l=gRows[gRows.length-1]||{b:'A',f:'1',n:'10',r:''};
     if(d.gadd==='b'){const nb=l.b.length===1?String.fromCharCode(l.b.toUpperCase().charCodeAt(0)+1):l.b;gRows.push({b:nb,f:l.f,n:l.n,r:l.r})}
     else gRows.push({b:l.b,f:String((+l.f||0)+1),n:l.n,r:l.r});
@@ -662,7 +597,7 @@ document.addEventListener('click',e=>{
     return;
   }
   if(d.grm!==undefined){gRows.splice(+d.grm,1);render();return}
-  if(b.id==='rs'){return checkOwner('Hapus Semua Data', ()=>{if(d.a){const ms=[...new Set(Object.keys(S.pay).map(k=>k.split('|')[1]))];S={rooms:[],pay:{}};setLast('SEMUA');save('r',...ms);render();toast('Data dihapus')}else{d.a=1;b.textContent='Yakin? Tap sekali lagi'}return}});
+  if(b.id==='rs'){if(d.a){const ms=[...new Set(Object.keys(S.pay).map(k=>k.split('|')[1]))];S={rooms:[],pay:{}};setLast('SEMUA');save('r',...ms);render();toast('Data dihapus')}else{d.a=1;b.textContent='Yakin? Tap sekali lagi'}return}
   const r=S.rooms.find(x=>x.id===openId);if(!r)return;
   if(d.full){if(!(+r.rent))return toast('Isi harga per bulan dulu');const k=r.id+'|'+d.full;S.pay[k]={d:(S.pay[k]&&S.pay[k].d)||today(),a:+r.rent};setLast(r.code);save(d.full);render();$('hist').innerHTML=hist(r)}
   else if(d.close)closeM();
