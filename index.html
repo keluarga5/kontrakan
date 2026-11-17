@@ -82,9 +82,20 @@ textarea{display:block;width:100%;padding:10px;font:inherit;font-size:13px;color
 <div id="lockScreen" hidden>
   <div class="lock-card">
     <h2>🔐 Akses Terkunci</h2>
-    <small style="margin:10px 0;color:var(--mu)">Masukkan KEY untuk membuka aplikasi dan mengelola data kos.</small>
-    <input type="password" id="appKeyInput" placeholder="Masukkan KEY..." autocomplete="off">
-    <button class="pri" id="btnUnlockApp" style="width:100%">Buka Aplikasi</button>
+    <small style="margin:8px 0 12px;color:var(--mu)">Masukkan KEY untuk membuka aplikasi dan mengelola data kos.</small>
+    <input type="password" id="appKeyInput" placeholder="Masukkan KEY (contoh: bandot5)" autocomplete="off">
+    <div style="margin:12px 0;text-align:left;font-size:13px;color:var(--tx)">
+      <label style="display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer">
+        <input type="radio" name="durKey" value="30days" style="width:auto;margin:0" checked> Simpan Akses 30 Hari
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer">
+        <input type="radio" name="durKey" value="perm" style="width:auto;margin:0"> Simpan Permanen di Perangkat
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer">
+        <input type="radio" name="durKey" value="session" style="width:auto;margin:0"> Sesi Ini Saja (Tutup Browser = Kunci)
+      </label>
+    </div>
+    <button class="pri" id="btnUnlockApp" style="width:100%;margin-top:6px">Buka Aplikasi</button>
   </div>
 </div>
 <header>
@@ -98,12 +109,36 @@ textarea{display:block;width:100%;padding:10px;font:inherit;font-size:13px;color
 <script>
 const $=id=>document.getElementById(id);
 const MASTER_KEY = 'bandot5';
-let isUnlocked = sessionStorage.getItem('app_unlocked') === '1';
+
+function checkIsUnlocked(){
+  if(sessionStorage.getItem('app_unlocked') === '1') return true;
+  const exp = localStorage.getItem('app_unlocked_until');
+  if(exp === 'perm') return true;
+  if(exp && !isNaN(exp) && Date.now() < +exp) return true;
+  return false;
+}
+
+let isUnlocked = checkIsUnlocked();
 
 function checkUnlockKey(inputKey){
-  if(inputKey === MASTER_KEY){
+  const cleanKey = (inputKey || '').trim();
+  if(cleanKey.toLowerCase() === MASTER_KEY.toLowerCase()){
     isUnlocked = true;
     sessionStorage.setItem('app_unlocked', '1');
+    
+    const rads = document.getElementsByName('durKey');
+    let selDur = '30days';
+    for(const r of rads){ if(r.checked){ selDur = r.value; break; } }
+    
+    if(selDur === '30days'){
+      const thirtyDays = Date.now() + (30 * 24 * 60 * 60 * 1000);
+      localStorage.setItem('app_unlocked_until', String(thirtyDays));
+    } else if(selDur === 'perm'){
+      localStorage.setItem('app_unlocked_until', 'perm');
+    } else {
+      localStorage.removeItem('app_unlocked_until');
+    }
+
     const lockEl = $('lockScreen');
     if(lockEl) lockEl.hidden = true;
     toast('Akses diberikan! Menghubungkan & memperbarui data...');
@@ -116,6 +151,15 @@ function checkUnlockKey(inputKey){
     toast('KEY Salah! Akses ditolak.', 3000);
     return false;
   }
+}
+
+function lockApp(){
+  isUnlocked = false;
+  sessionStorage.removeItem('app_unlocked');
+  localStorage.removeItem('app_unlocked_until');
+  const lockEl = $('lockScreen');
+  if(lockEl) lockEl.hidden = false;
+  toast('Akses dikunci kembali.');
 }
 
 function requireUnlock(){
@@ -210,7 +254,7 @@ function vSet(){
   <div class="gr"><small>Blok</small><small>Lantai</small><small>Kamar</small><small>Harga/bulan</small><span></span></div>${gRows.map(row).join('')}
   <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" data-gadd="b">+ Blok</button><button class="danger" style="background:var(--bg);color:var(--tx)" data-gadd="f">+ Lantai</button><button class="pri" id="go">Buat kamar</button></div>
   <small style="margin-top:10px">Contoh: blok A lantai 1 isi 10 kamar, blok B lantai 2 isi 20 kamar, jadi kodenya A101 sampai A110 dan B201 sampai B220. Kamar yang sudah ada tidak ditimpa. Nama penghuni diisi dengan mengetuk kamar.</small></div>
-  ${vStruct()}<h2>Telegram</h2>${vShare()}${vApp()}<h2>Data & Laporan</h2><div class="card"><small style="margin:10px 0">${tgOn()?'Data disinkronkan lewat Telegram.':'Data tersimpan di HP ini. Isi pengaturan Telegram supaya bisa sinkron antar HP.'}</small><div class="btns" style="margin-bottom:10px;"><button class="pri" id="btnExportCSV" style="background:#27ae60;color:#fff;">📊 Ekspor Data (Excel/CSV)</button></div><button class="danger" id="rs">Hapus semua data</button></div>`;
+  ${vStruct()}<h2>Telegram</h2>${vShare()}${vApp()}<h2>Data & Laporan</h2><div class="card"><small style="margin:10px 0">${tgOn()?'Data disinkronkan lewat Telegram.':'Data tersimpan di HP ini. Isi pengaturan Telegram supaya bisa sinkron antar HP.'}</small><div class="btns" style="margin-bottom:10px;"><button class="pri" id="btnExportCSV" style="background:#27ae60;color:#fff;">📊 Ekspor Data (Excel/CSV)</button><button class="danger" id="btnLockApp" style="background:#e67e22;color:#fff;">🔒 Kunci Akses</button></div><button class="danger" id="rs">Hapus semua data</button></div>`;
 }
 const gl=()=>{const g={};S.rooms.forEach(r=>{const k=r.block+'|'+r.floor;(g[k]=g[k]||{b:r.block,f:r.floor,rs:[]}).rs.push(r)});
   return Object.values(g).sort((x,y)=>String(x.b).localeCompare(String(y.b))||x.f-y.f)};
@@ -631,10 +675,14 @@ document.addEventListener('keydown', e => {
   }
 });
 document.addEventListener('click',e=>{
-  if(e.target.id==='btnUnlockApp'){ checkUnlockKey($('appKeyInput').value); return; }
-  if(!isUnlocked){ const lockEl=$('lockScreen'); if(lockEl) lockEl.hidden=false; toast('Masukkan KEY terlebih dahulu', 2500); return; }
+  if(e.target.id==='btnUnlockApp' || e.target.closest('#btnUnlockApp')){ checkUnlockKey($('appKeyInput').value); return; }
+  if(!isUnlocked){
+    if(e.target.closest('#lockScreen')) return;
+    const lockEl=$('lockScreen'); if(lockEl) lockEl.hidden=false; toast('Masukkan KEY terlebih dahulu', 2500); return;
+  }
   if(e.target.id==='modal')return closeM();
   const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  if(b.id==='btnLockApp') return lockApp();
   if(b.id==='pm'||b.id==='nm'){cur=add(cur,b.id==='pm'?-1:1);render();return}
   if(d.t){tab=d.t;render();scrollTo(0,0);return}
   if(b.id==='mlabel')return openCal();
