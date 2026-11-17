@@ -171,7 +171,7 @@ function vSet(){
   <div class="gr"><small>Blok</small><small>Lantai</small><small>Kamar</small><small>Harga/bulan</small><span></span></div>${gRows.map(row).join('')}
   <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" data-gadd="b">+ Blok</button><button class="danger" style="background:var(--bg);color:var(--tx)" data-gadd="f">+ Lantai</button><button class="pri" id="go">Buat kamar</button></div>
   <small style="margin-top:10px">Contoh: blok A lantai 1 isi 10 kamar, blok B lantai 2 isi 20 kamar, jadi kodenya A101 sampai A110 dan B201 sampai B220. Kamar yang sudah ada tidak ditimpa. Nama penghuni diisi dengan mengetuk kamar.</small></div>
-  ${vStruct()}<h2>Telegram Sync</h2>${vShare()}<h2>Data & Laporan</h2><div class="card"><small style="margin:10px 0">${tgOn()?'Data disinkronkan lewat Telegram.':'Data tersimpan di HP ini. Isi pengaturan Telegram supaya bisa sinkron antar HP.'}</small><div class="btns" style="margin-bottom:10px;"><button class="pri" id="btnExportCSV" style="background:#27ae60;color:#fff;">📊 Ekspor Data (Excel/CSV)</button></div><button class="danger" id="rs">Hapus semua data</button></div>`;
+  ${vStruct()}<h2>Telegram</h2>${vShare()}<h2>Data & Laporan</h2><div class="card"><small style="margin:10px 0">${tgOn()?'Data disinkronkan lewat Telegram.':'Data tersimpan di HP ini. Isi pengaturan Telegram supaya bisa sinkron antar HP.'}</small><div class="btns" style="margin-bottom:10px;"><button class="pri" id="btnExportCSV" style="background:#27ae60;color:#fff;">📊 Ekspor Data (Excel/CSV)</button></div><button class="danger" id="rs">Hapus semua data</button></div>`;
 }
 const gl=()=>{const g={};S.rooms.forEach(r=>{const k=r.block+'|'+r.floor;(g[k]=g[k]||{b:r.block,f:r.floor,rs:[]}).rs.push(r)});
   return Object.values(g).sort((x,y)=>String(x.b).localeCompare(String(y.b))||x.f-y.f)};
@@ -317,12 +317,8 @@ async function fetchTelegramData(){
     return toast('Isi Token Bot Telegram terlebih dahulu');
   }
   toast('Mengambil data Telegram...', 3000);
-  
-  // Try fetching updates / messages from channel or getting updates
   const targetChannel = TG.c || TG_DEFAULT.c;
-  
   try {
-    // Attempt 1: Fetch via getUpdates or getChat
     const res = await fetch(`https://api.telegram.org/bot${TG.t}/getChat?chat_id=${targetChannel}`);
     if(!res.ok){
       throw new Error('Telegram API status ' + res.status);
@@ -331,21 +327,18 @@ async function fetchTelegramData(){
     toast('Terhubung ke saluran Telegram: ' + (data.result.title || targetChannel));
   } catch(e) {
     console.warn('Telegram fetch error (Failed to fetch/CORS):', e);
-    // Fallback gracefully without breaking app
-    toast('Gagal koneksi langsung (Failed to fetch). Menggunakan data lokal/default.', 4000);
+    toast('Koneksi Telegram langsung dibatasi origin/CORS. Menggunakan fallback data lokal & saluran default.', 4000);
   }
 }
 
 function exportCSV(){
   if(!S.rooms.length)return toast('Belum ada data kamar untuk diekspor');
-  let csv = 'Kode Kamar,Blok,Lantai,Penghuni,Harga Rent,Status Bulan Ini,Terbayar Bulan Ini
-';
+  let csv = 'Kode Kamar,Blok,Lantai,Penghuni,Harga Rent,Status Bulan Ini,Terbayar Bulan Ini\n';
   S.rooms.forEach(r => {
     const o = occIn(r, cur);
     const s = stat(r, cur);
     const terbayar = amt(r, cur);
-    csv += `"${r.code}","${r.block}","${r.floor}","${r.name||'Kosong'}","${r.rent||0}","${o?s[1]:'Kosong'}","${terbayar}"
-`;
+    csv += `"${r.code}","${r.block}","${r.floor}","${r.name||'Kosong'}","${r.rent||0}","${o?s[1]:'Kosong'}","${terbayar}"\n`;
   });
   const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
