@@ -90,7 +90,7 @@ const lab=m=>MN[+m.slice(5)-1]+' '+m.slice(0,4);
 const add=(m,k)=>ym(new Date(+m.slice(0,4),+m.slice(5)-1+k,1));
 const rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let S={rooms:[],pay:{}};
+let S={rooms:[],pay:{}}; let srcQuery = '';
 try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
 const today=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -119,9 +119,18 @@ const card=r=>{const o=occIn(r,cur),s=stat(r,cur),st=!o?'vac':s[0]||'no';
   return `<button class="rc ${st}" data-room="${r.id}"><small>${esc(r.code)}</small><b>${occ(r)?esc(r.name):'Kosong'}</b><em>${o?s[1]:(occ(r)?'Belum masuk':rp(r.rent))}</em></button>`};
 function vRooms(){
   if(!S.rooms.length)return '<p class="empty">Belum ada kamar. Buat dulu di tab Atur.</p>';
+  const searchInputHTML = `<div style="margin-bottom:12px;"><input type="text" id="srcR" value="${esc(srcQuery)}" placeholder="🔍 Cari kamar atau nama penghuni..." style="margin-top:0;"></div>`;
+  let roomsToDisplay = S.rooms;
+  if(srcQuery.trim()){
+    const q = srcQuery.trim().toLowerCase();
+    roomsToDisplay = S.rooms.filter(r => r.code.toLowerCase().includes(q) || (r.name && r.name.toLowerCase().includes(q)));
+  }
+  if(!roomsToDisplay.length){
+    return searchInputHTML + `<p class="empty">Tidak ada kamar atau penghuni yang cocok dengan "${esc(srcQuery)}".</p>`;
+  }
   const g={};
-  S.rooms.forEach(r=>{g[r.block]=g[r.block]||{};(g[r.block][r.floor]=g[r.block][r.floor]||[]).push(r)});
-  return Object.keys(g).sort().map(b=>{
+  roomsToDisplay.forEach(r=>{g[r.block]=g[r.block]||{};(g[r.block][r.floor]=g[r.block][r.floor]||[]).push(r)});
+  return searchInputHTML + Object.keys(g).sort().map(b=>{
     const o=Object.values(g[b]).flat().filter(r=>occIn(r,cur)),ok=o.filter(r=>paid(r,cur)).length;
     return `<h2>Blok ${esc(b)}<span>${ok}/${o.length} lunas</span></h2>`+Object.keys(g[b]).sort((x,y)=>x-y).map(f=>
       `<h3>Lantai ${esc(f)}</h3><div class="grid">`+g[b][f].sort((x,y)=>x.code.localeCompare(y.code,'id',{numeric:true})).map(card).join('')+'</div>').join('');
@@ -141,7 +150,7 @@ function vSet(){
   <div class="gr"><small>Blok</small><small>Lantai</small><small>Kamar</small><small>Harga/bulan</small><span></span></div>${gRows.map(row).join('')}
   <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" data-gadd="b">+ Blok</button><button class="danger" style="background:var(--bg);color:var(--tx)" data-gadd="f">+ Lantai</button><button class="pri" id="go">Buat kamar</button></div>
   <small style="margin-top:10px">Contoh: blok A lantai 1 isi 10 kamar, blok B lantai 2 isi 20 kamar, jadi kodenya A101 sampai A110 dan B201 sampai B220. Kamar yang sudah ada tidak ditimpa. Nama penghuni diisi dengan mengetuk kamar.</small></div>
-  ${vStruct()}<h2>Telegram</h2>${vShare()}${vApp()}<h2>Data</h2><div class="card"><small style="margin:10px 0">${tgOn()?'Data disinkronkan lewat Telegram.':'Data tersimpan di HP ini. Isi pengaturan Telegram supaya bisa sinkron antar HP.'}</small><button class="danger" id="rs">Hapus semua data</button></div>`;
+  ${vStruct()}<h2>Telegram</h2>${vShare()}${vApp()}<h2>Data & Laporan</h2><div class="card"><small style="margin:10px 0">${tgOn()?'Data disinkronkan lewat Telegram.':'Data tersimpan di HP ini. Isi pengaturan Telegram supaya bisa sinkron antar HP.'}</small><div class="btns" style="margin-bottom:10px;"><button class="pri" id="btnExportCSV" style="background:#27ae60;color:#fff;">📊 Ekspor Data (Excel/CSV)</button></div><button class="danger" id="rs">Hapus semua data</button></div>`;
 }
 const gl=()=>{const g={};S.rooms.forEach(r=>{const k=r.block+'|'+r.floor;(g[k]=g[k]||{b:r.block,f:r.floor,rs:[]}).rs.push(r)});
   return Object.values(g).sort((x,y)=>String(x.b).localeCompare(String(y.b))||x.f-y.f)};
@@ -401,7 +410,45 @@ function gen(){
 const hist=r=>{let m=r.since||cur,a=[];const end=nowYM>cur?nowYM:cur;
   while(m<=end&&a.length<120){a.push(m);m=add(m,1)}
   return a.reverse().slice(0,18).map(m=>{const s=stat(r,m),g=amt(r,m);
-    return `<div class="hr ${s[0]}"><div><b>${lab(m)}</b><small>${s[1]}</small></div><div class="pi"><input type="number" inputmode="numeric" data-am="${m}" value="${g||''}" placeholder="Dibayar"><button data-full="${m}">Lunas</button></div></div>`}).join('')||'<small style="margin:8px 0">Belum masuk pada bulan ini.</small>'};
+    const kwBtn = g>0 ? `<button data-kw="${m}" data-rid="${r.id}" style="border:1px solid var(--ac);color:var(--ac);background:var(--acb);border-radius:8px;padding:5px 8px;font-size:12px;margin-right:4px;">🧾 Kwitansi</button>` : '';
+    return `<div class="hr ${s[0]}"><div><b>${lab(m)}</b><small>${s[1]}</small></div><div class="pi">${kwBtn}<input type="number" inputmode="numeric" data-am="${m}" value="${g||''}" placeholder="Dibayar"><button data-full="${m}">Lunas</button></div></div>`}).join('')||'<small style="margin:8px 0">Belum masuk pada bulan ini.</small>'};
+
+function openKwitansi(roomId, month){
+  const r = S.rooms.find(x => x.id === roomId);
+  if(!r) return;
+  const payInfo = S.pay[r.id + '|' + month] || {};
+  const g = payInfo.a || 0;
+  const tgl = payInfo.d || today();
+  const kwNo = 'KW-' + r.code + '-' + month.replace('-', '');
+  const st = paid(r, month) ? 'LUNAS' : 'SEBAGIAN (Kurang ' + rp(left(r, month)) + ')';
+  
+  const txt = `================================
+     KWITANSI PEMBAYARAN KOS
+================================
+No. Kwitansi   : ${kwNo}
+Tanggal Bayar  : ${tgl}
+Nama Penghuni  : ${r.name || '-'}
+Kamar / Blok   : Kamar ${r.code} (Blok ${r.block}, Lt ${r.floor})
+Periode Bulan  : ${lab(month)}
+Harga Sewa     : ${rp(r.rent)}
+Jumlah Dibayar : ${rp(g)}
+Status         : ${st}
+================================
+Terima kasih atas pembayarannya!`;
+
+  $('sheet').innerHTML = `
+    <h2>🧾 Kwitansi Pembayaran</h2>
+    <small>Nomor: ${kwNo}</small>
+    <textarea id="kwTxt" rows="12" style="font-family:monospace;font-size:13px;margin:10px 0;width:100%;" readonly>${esc(txt)}</textarea>
+    <div class="btns">
+      <button class="pri" id="btnCopyKw">📋 Salin Kwitansi</button>
+      <button class="pri" id="btnWaKw" style="background:#25D366;color:#fff;">💬 Kirim WA</button>
+      <button class="danger" style="background:var(--bg);color:var(--tx)" data-close="1">Tutup</button>
+    </div>
+  `;
+  $('modal').hidden = false;
+  openId = null;
+}
 function openRoom(id){
   const r=S.rooms.find(x=>x.id===id);if(!r)return;openId=id;
   $('sheet').innerHTML=`<h2 id="ttl">${esc(r.name||'Kamar '+r.code)}</h2>
@@ -423,6 +470,61 @@ function calHTML(){
   <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" data-cm="${nowYM}">Bulan ini</button><button class="pri" data-close="1">Tutup</button></div>`;
 }
 function openCal(){cy=+cur.slice(0,4);cmode='m';$('sheet').innerHTML=calHTML();openId=null;$('modal').hidden=false}
+function exportCSV(){
+  if(!S.rooms.length) return toast('Belum ada data kamar untuk diekspor');
+  let csv = '\uFEFF"Kode Kamar","Blok","Lantai","Nama Penghuni","Harga Sewa (Rp)","Mulai Tinggal","Masa Sewa Habis","Bulan Tagihan","Dibayar (Rp)","Status","Tanggal Bayar"\n';
+  S.rooms.forEach(r => {
+    let m = r.since || cur;
+    const end = nowYM > cur ? nowYM : cur;
+    const months = [];
+    while(m <= end && months.length < 120){
+      months.push(m);
+      m = add(m, 1);
+    }
+    months.forEach(mo => {
+      const g = amt(r, mo);
+      const payInfo = S.pay[r.id + '|' + mo] || {};
+      const s = stat(r, mo);
+      const row = [
+        `"${r.code}"`,
+        `"${r.block}"`,
+        `"${r.floor}"`,
+        `"${(r.name||'Kosong').replace(/"/g, '""')}"`,
+        r.rent || 0,
+        `"${r.since || ''}"`,
+        `"${r.until || ''}"`,
+        `"${lab(mo)}"`,
+        g,
+        `"${s[1]}"`,
+        `"${payInfo.d || ''}"`
+      ];
+      csv += row.join(',') + '\n';
+    });
+  });
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Rekap_CatatanBayarKamar_${today()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Data berhasil diekspor ke file CSV/Excel');
+}
+
+document.addEventListener('input',e=>{
+  if(e.target.id === 'srcR'){
+    srcQuery = e.target.value;
+    const pos = e.target.selectionStart;
+    render();
+    const input = $('srcR');
+    if(input){
+      input.focus();
+      try{ input.setSelectionRange(pos, pos); }catch(err){}
+    }
+  }
+});
 document.addEventListener('change',e=>{
   if(e.target.id==='syncFileInput'){
     const file=e.target.files&&e.target.files[0];
@@ -484,6 +586,16 @@ document.addEventListener('click',e=>{
   if(b.id==='rb')return tgPull(true);
   if(b.id==='btnPickFile'){const fi=$('syncFileInput');if(fi)fi.click();return}
   if(b.id==='btnLastFile')return useLastSyncedFile();
+  if(b.id==='btnExportCSV')return exportCSV();
+  if(d.kw)return openKwitansi(d.rid, d.kw);
+  if(b.id==='btnCopyKw'){
+    const t=$('kwTxt');if(t){t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value).catch(()=>document.execCommand('copy'));else document.execCommand('copy');toast('Kwitansi disalin');}
+    return;
+  }
+  if(b.id==='btnWaKw'){
+    const t=$('kwTxt');if(t){window.open('https://wa.me/?text='+encodeURIComponent(t.value),'_blank');}
+    return;
+  }
   if(d.grm!==undefined){gRows.splice(+d.grm,1);render();return}
   if(b.id==='rs'){if(d.a){const ms=[...new Set(Object.keys(S.pay).map(k=>k.split('|')[1]))];S={rooms:[],pay:{}};setLast('SEMUA');save('r',...ms);render();toast('Data dihapus')}else{d.a=1;b.textContent='Yakin? Tap sekali lagi'}return}
   const r=S.rooms.find(x=>x.id===openId);if(!r)return;
