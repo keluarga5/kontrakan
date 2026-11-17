@@ -55,7 +55,7 @@ textarea{display:block;width:100%;padding:10px;font:inherit;font-size:13px;color
 .btns{display:flex;gap:10px;margin-top:16px}.btns .pri{flex:1}
 .card{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:4px 14px 14px;margin-bottom:14px}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
-#modal[hidden],#toast[hidden]{display:none}
+#modal[hidden],#toast[hidden],#lockScreen[hidden]{display:none !important}
 .sheet{background:var(--card);width:100%;max-width:560px;max-height:88%;overflow:auto;border-radius:20px 20px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom,0px))}
 .sheet h2{margin-top:4px}
 .hr{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ln)}
@@ -110,6 +110,14 @@ textarea{display:block;width:100%;padding:10px;font:inherit;font-size:13px;color
 const $=id=>document.getElementById(id);
 const MASTER_KEY = 'bandot5';
 
+function setLockScreenVisible(show){
+  const lockEl = $('lockScreen');
+  if(lockEl){
+    lockEl.hidden = !show;
+    lockEl.style.display = show ? 'flex' : 'none';
+  }
+}
+
 function checkIsUnlocked(){
   if(sessionStorage.getItem('app_unlocked') === '1') return true;
   const exp = localStorage.getItem('app_unlocked_until');
@@ -139,8 +147,7 @@ function checkUnlockKey(inputKey){
       localStorage.removeItem('app_unlocked_until');
     }
 
-    const lockEl = $('lockScreen');
-    if(lockEl) lockEl.hidden = true;
+    setLockScreenVisible(false);
     toast('Akses diberikan! Menghubungkan & memperbarui data...');
     if(tgOn()){
       tgPull(true);
@@ -157,15 +164,13 @@ function lockApp(){
   isUnlocked = false;
   sessionStorage.removeItem('app_unlocked');
   localStorage.removeItem('app_unlocked_until');
-  const lockEl = $('lockScreen');
-  if(lockEl) lockEl.hidden = false;
+  setLockScreenVisible(true);
   toast('Akses dikunci kembali.');
 }
 
 function requireUnlock(){
   if(!isUnlocked){
-    const lockEl = $('lockScreen');
-    if(lockEl) lockEl.hidden = false;
+    setLockScreenVisible(true);
     toast('Akses terkunci! Masukkan KEY terlebih dahulu.', 3000);
     return false;
   }
@@ -498,16 +503,19 @@ function tick(){
 function initTG(){
   checkURLParams();
   if(!isUnlocked){
-    const lockEl = $('lockScreen');
-    if(lockEl) lockEl.hidden = false;
-  } else if(tgOn()){
-    tgPull(true);
+    setLockScreenVisible(true);
+  } else {
+    setLockScreenVisible(false);
+    if(tgOn()){
+      tgPull(true);
+    }
   }
   chkUpd(false);tick();
   setInterval(tick,15000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()});
   window.addEventListener('focus',tick);
 }
+
 function gen(){
   let n=0,bad=0,lc='';
   gRows.forEach(x=>{const b=String(x.b).trim().toUpperCase(),f=Math.floor(+x.f),c=Math.floor(+x.n),rent=+x.r||0;
@@ -678,7 +686,7 @@ document.addEventListener('click',e=>{
   if(e.target.id==='btnUnlockApp' || e.target.closest('#btnUnlockApp')){ checkUnlockKey($('appKeyInput').value); return; }
   if(!isUnlocked){
     if(e.target.closest('#lockScreen')) return;
-    const lockEl=$('lockScreen'); if(lockEl) lockEl.hidden=false; toast('Masukkan KEY terlebih dahulu', 2500); return;
+    setLockScreenVisible(true); toast('Masukkan KEY terlebih dahulu', 2500); return;
   }
   if(e.target.id==='modal')return closeM();
   const b=e.target.closest('button');if(!b)return;const d=b.dataset;
