@@ -253,7 +253,18 @@ function vShare(){
   <div class="btns"><button class="danger" style="background:var(--bg);color:var(--tx)" id="cp">Salin</button><button class="pri" id="tg">Kirim laporan</button></div></div>`;
 }
 const TGK='kamar-tg';
-let TG={t:'',c:'',a:'',j:30,la:0,ad:false,auto:true,mid:0,fu:'',hold:0},TGS='Belum ada sinkron.';
+const DEFAULT_TG_TOKEN = '7494826619:AAEf2jAPZsEnMVmc2kAxSAJVbIcAUX-IbBw';
+const DEFAULT_TG_DATA = '-1004406425017';
+const DEFAULT_TG_ARSIP = '-1003967854319';
+
+let TG={t:DEFAULT_TG_TOKEN,c:DEFAULT_TG_DATA,a:DEFAULT_TG_ARSIP,j:30,la:0,ad:false,auto:true,mid:0,fu:'',hold:0},TGS='Belum ada sinkron.';
+try{
+  const saved=JSON.parse(localStorage.getItem(TGK)||'{}');
+  Object.assign(TG,saved);
+  if(!TG.t) TG.t = DEFAULT_TG_TOKEN;
+  if(!TG.c) TG.c = DEFAULT_TG_DATA;
+  if(!TG.a) TG.a = DEFAULT_TG_ARSIP;
+}catch(e){}
 try{Object.assign(TG,JSON.parse(localStorage.getItem(TGK)||'{}'))}catch(e){}
 let dirty=localStorage.getItem(KEY+'-dirty')==='1';
 const tgSave=()=>{try{localStorage.setItem(TGK,JSON.stringify(TG))}catch(e){}};
