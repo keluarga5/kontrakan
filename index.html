@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
-  <title>KosKu Manager - Aplikasi Manajemen Sewa & Keuangan Kos</title>
+  <title>KosKu Manager - Dual Sync Telegram & Kelola Sewa Kos</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Configure Tailwind to ignore system dark mode media queries -->
+  <!-- Configure Tailwind to force Light Theme -->
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -36,13 +36,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Chart.js CDN for Financial Analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- LZ-String Compression CDN for Telegram Text Sync (Zero-CORS, High Capacity) -->
+  <!-- LZ-String Compression CDN for Fast Zero-CORS Telegram Text Sync -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
   <!-- Google Fonts Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    /* Force Light Mode Color Scheme across all devices */
+    /* Paksa Mode Terang (Light Mode) pada seluruh perangkat HP & Browser */
     :root {
       color-scheme: light !important;
     }
@@ -52,7 +52,6 @@
       font-family: 'Inter', sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
-    /* Modal Z-Index Rules */
     .modal-backdrop {
       background-color: rgba(15, 23, 42, 0.6);
       backdrop-filter: blur(4px);
@@ -60,10 +59,10 @@
     .modal-base {
       z-index: 9000;
     }
+    /* Floating Confirmation Modal - Mengatasi Masalah Tertimpa Modal Lain */
     .modal-top {
       z-index: 99999 !important;
     }
-    /* Hide scrollbar for tab navigation */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -75,7 +74,7 @@
 </head>
 <body class="bg-slate-100 text-slate-900 antialiased pb-24 min-h-screen">
 
-  <!-- TOP HEADER NAVBAR (LIGHT THEME) -->
+  <!-- TOP HEADER NAVBAR (LIGHT MODE ENFORCED) -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-3">
@@ -86,21 +85,21 @@
           <h1 class="font-bold text-slate-900 text-base md:text-lg leading-tight flex items-center gap-2">
             KosKu Manager
             <span id="telegramStatusBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center gap-1">
-              <i class="fa-brands fa-telegram text-sky-600"></i> Direct Sync
+              <i class="fa-brands fa-telegram text-sky-600"></i> Dual Sync Active
             </span>
           </h1>
-          <p class="text-xs text-slate-500 hidden sm:block">Aplikasi Kelola Sewa & Sinkronisasi Telegram</p>
+          <p class="text-xs text-slate-500 hidden sm:block">Aplikasi Kelola Sewa & Dual Auto-Sync Telegram (Teks + .JSON)</p>
         </div>
       </div>
 
-      <!-- Quick Actions Top Header -->
+      <!-- Quick Actions Header -->
       <div class="flex items-center space-x-2">
         <div class="flex items-center gap-1 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-300">
           <i class="fa-solid fa-calendar-days text-slate-500 text-xs"></i>
           <input type="month" id="globalMonthPicker" class="bg-transparent text-slate-800 text-xs font-semibold focus:outline-none">
         </div>
         
-        <button onclick="restoreDirectFromTelegramChannel()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95" title="Ambil Data Teks dari Pinned Message Saluran Telegram">
+        <button onclick="restoreDirectFromTelegramChannel()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95" title="Ambil Data Terakhir dari Saluran Telegram">
           <i id="syncSpinIcon" class="fa-solid fa-cloud-arrow-down"></i>
           <span class="hidden sm:inline">Ambil Data Telegram</span>
         </button>
@@ -111,7 +110,7 @@
   <!-- MAIN APP CONTAINER -->
   <main class="max-w-7xl mx-auto px-4 py-4">
 
-    <!-- STATS SUMMARY DASHBOARD -->
+    <!-- STATS DASHBOARD SUMMARY -->
     <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
       <!-- Card 1: Total Kamar -->
       <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
@@ -137,7 +136,7 @@
         </div>
       </div>
 
-      <!-- Card 3: Pemasukan Bulan Ini -->
+      <!-- Card 3: Total Diterima -->
       <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
         <div>
           <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Total Diterima</p>
@@ -162,7 +161,7 @@
       </div>
     </section>
 
-    <!-- TAB CONTENT 1: DAFTAR KAMAR -->
+    <!-- TAB 1: DAFTAR KAMAR -->
     <div id="tabContentKamar" class="tab-page space-y-4">
       <!-- Search & Filter Controls -->
       <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row gap-2.5 items-center justify-between">
@@ -192,7 +191,7 @@
       </div>
     </div>
 
-    <!-- TAB CONTENT 2: KAMAR MENUNGGAK & REKAP -->
+    <!-- TAB 2: KAMAR MENUNGGAK & REKAP -->
     <div id="tabContentMenunggak" class="tab-page hidden space-y-4">
       <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center justify-between text-amber-900">
         <div class="flex items-center space-x-3">
@@ -228,7 +227,7 @@
       </div>
     </div>
 
-    <!-- TAB CONTENT 3: TIPE KAMAR & TARIF -->
+    <!-- TAB 3: TIPE KAMAR & TARIF -->
     <div id="tabContentTipe" class="tab-page hidden space-y-4">
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
         <div>
@@ -246,21 +245,21 @@
       </div>
     </div>
 
-    <!-- TAB CONTENT 4: PENGATURAN & SINKRONISASI TELEGRAM -->
+    <!-- TAB 4: PENGATURAN & SINKRONISASI TELEGRAM -->
     <div id="tabContentPengaturan" class="tab-page hidden space-y-4">
       
-      <!-- Telegram Direct Text DB Sync Config Card -->
+      <!-- Dual Sync Telegram Config Card -->
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
         <div class="flex items-center justify-between border-b border-slate-100 pb-2">
           <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
             <i class="fa-brands fa-telegram text-sky-600 text-lg"></i>
-            Integrasi Saluran Telegram (Direct Text Sync LZ-Compressed)
+            Integrasi Saluran Telegram (Dual Sync: Teks Pinned + File .JSON)
           </h3>
-          <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold border border-emerald-300">Text Base (`KOS_ZDB:`)</span>
+          <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold border border-emerald-300">Dual Sync Real-Time</span>
         </div>
         
         <p class="text-xs text-slate-600">
-          Database otomatis di-kompresi dengan <b>LZ-String</b> dan dikirimkan via API Telegram <code>sendMessage</code> lalu disematkan (pinned). HP lain dapat mengambil data secara instan tanpa masalah CORS atau batasan file!
+          Setiap perubahan data (sewa/bayar/kamar) otomatis dikirim dalam <b>2 format sekaligus</b> ke Telegram: Teks terkompresi <code>KOS_ZDB:</code> yang disematkan (pinned) untuk restore cepat, serta file <code>kos_database.json</code> sebagai cadangan arsip fisik.
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -281,8 +280,8 @@
           <button onclick="restoreDirectFromTelegramChannel()" class="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow-sm">
             <i class="fa-solid fa-cloud-arrow-down mr-1"></i> Ambil & Restore Data Telegram
           </button>
-          <button onclick="requestDoubleConfirmation('Unggah Data Teks ke Telegram', 'Data akan dikirim sebagai teks terkompresi dan disematkan di saluran.', () => autoSendTelegramText(false))" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg">
-            <i class="fa-solid fa-paper-plane mr-1"></i> Kirim & Pin Data Sekarang
+          <button onclick="requestDoubleConfirmation('Unggah Dual Database ke Telegram', 'Data akan dikirimkan sebagai pesan teks pinned dan file .json ke saluran.', () => autoSendTelegramDualSync(false))" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg">
+            <i class="fa-solid fa-paper-plane mr-1"></i> Paksa Kirim Dual Sync Sekarang
           </button>
           <button onclick="saveSettingsForm()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg ml-auto shadow-sm">
             Simpan Konfigurasi
@@ -309,7 +308,7 @@
 
       <!-- Local Data Import / Export Backup -->
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
-        <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">Cadangan Lokal (File JSON HP)</h3>
+        <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">Cadangan File Lokal HP</h3>
         <div class="flex flex-wrap gap-2 text-xs">
           <button onclick="exportLocalJson()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-lg border border-slate-300">
             <i class="fa-solid fa-download mr-1"></i> Export Backup File (.json)
@@ -542,10 +541,11 @@
 
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">Pilih Blok</label>
-            <select id="floorBlockSelect" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <label class="block font-semibold text-slate-700 mb-1">Nama Blok (Bisa Ketik Bebas)</label>
+            <input type="text" id="floorBlockInput" list="blockDatalist" required placeholder="Contoh: Blok C, Gedung B, Paviliun" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <datalist id="blockDatalist">
               <!-- Rendered dynamically -->
-            </select>
+            </datalist>
           </div>
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Nomor Lantai</label>
@@ -718,14 +718,16 @@
     function saveDataToStorage(triggerTelegram = true) {
       localStorage.setItem('kosku_manager_db', JSON.stringify(appData));
       if (triggerTelegram) {
-        autoSendTelegramText(true);
+        autoSendTelegramDualSync(true);
       }
     }
 
     /**
-     * TELEGRAM TEXT SYNC WITH LZ-STRING COMPRESSION (CORS-FREE)
+     * DUAL SYNC TELEGRAM SYSTEM:
+     * 1) TEKS LZ-STRING COMPRESSED (sendMessage + pinChatMessage)
+     * 2) DOKUMEN ARSIP FISIK (sendDocument .json)
      */
-    async function autoSendTelegramText(silent = false) {
+    async function autoSendTelegramDualSync(silent = true) {
       const token = appData.settings ? appData.settings.telegramToken : DEFAULT_DATA.settings.telegramToken;
       const chatId = appData.settings ? appData.settings.telegramChatId : DEFAULT_DATA.settings.telegramChatId;
 
@@ -737,12 +739,14 @@
       const spinIcon = document.getElementById('syncSpinIcon');
       if (spinIcon) spinIcon.classList.add('animate-spin');
 
-      try {
-        const jsonString = JSON.stringify(appData);
-        const compressed = LZString.compressToBase64(jsonString);
-        const payloadText = `KOS_ZDB:${compressed}\n\n📌 AUTO_SYNC_KOSKU | ${new Date().toLocaleString('id-ID')}`;
+      const jsonString = JSON.stringify(appData, null, 2);
 
-        const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      // AKSI 1: Kirim Pesan Teks Terkompresi & Pin Message
+      try {
+        const compressed = LZString.compressToBase64(jsonString);
+        const payloadText = `KOS_ZDB:${compressed}\n\n📌 DUAL_SYNC_KOSKU | ${new Date().toLocaleString('id-ID')}`;
+
+        const textRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -751,10 +755,9 @@
           })
         });
 
-        const resData = await response.json();
+        const resData = await textRes.json();
         if (resData.ok && resData.result) {
           const messageId = resData.result.message_id;
-
           try {
             await fetch(`https://api.telegram.org/bot${token}/pinChatMessage`, {
               method: 'POST',
@@ -768,16 +771,29 @@
           } catch (pinErr) {
             console.warn("Could not auto-pin message:", pinErr);
           }
-
-          if (!silent) showToast("Data terkompresi berhasil dikirim & disematkan di Saluran Telegram!", "success");
-        } else {
-          throw new Error(resData.description || "Gagal mengirim pesan ke Telegram");
         }
       } catch (err) {
-        console.error("Telegram Sync Error:", err);
-        if (!silent) showToast(`Gagal kirim ke Telegram: ${err.message}`, "error");
+        console.error("Dual Sync Teks Error:", err);
+      }
+
+      // AKSI 2: Kirim File Lampiran Fisik .JSON Sebagai Arsip Real-Time
+      try {
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const formData = new FormData();
+        formData.append('chat_id', chatId);
+        const fileName = `kos_database_${new Date().toISOString().slice(0, 10)}.json`;
+        formData.append('document', blob, fileName);
+        formData.append('caption', `📁 ARSIP DUAL-SYNC (.json) | ${new Date().toLocaleString('id-ID')}`);
+
+        await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+          method: 'POST',
+          body: formData
+        });
+      } catch (docErr) {
+        console.error("Dual Sync File Error:", docErr);
       } finally {
         if (spinIcon) spinIcon.classList.remove('animate-spin');
+        if (!silent) showToast("Dual Sync Telegram (Teks Pinned + File .JSON) Berhasil!", "success");
       }
     }
 
@@ -871,7 +887,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: chatId,
-            text: "✅ Uji coba koneksi KosKu Manager ke Telegram berhasil!"
+            text: "✅ Uji coba koneksi Dual-Sync KosKu Manager ke Telegram berhasil!"
           })
         });
         const data = await res.json();
@@ -1382,7 +1398,7 @@
         saveDataToStorage(true);
         closeModal('paymentModal');
         renderAll();
-        showToast("Pembayaran berhasil dicatat!", "success");
+        showToast("Pembayaran berhasil dicatat & disinkronkan ke Telegram!", "success");
       });
     }
 
@@ -1436,7 +1452,7 @@
         saveDataToStorage(true);
         closeModal('tenantModal');
         renderAll();
-        showToast("Data kamar berhasil diperbarui!", "success");
+        showToast("Data kamar berhasil diperbarui & disinkronkan!", "success");
       });
     }
 
@@ -1523,14 +1539,15 @@
     // FLOOR MODAL
     function openFloorModal(floorId = null) {
       const title = document.getElementById('floorModalTitle');
-      const blockSelect = document.getElementById('floorBlockSelect');
+      const blockInput = document.getElementById('floorBlockInput');
+      const blockDatalist = document.getElementById('blockDatalist');
       const defaultTypeSelect = document.getElementById('floorDefaultTypeSelect');
 
-      let blockHtml = '';
+      let datalistHtml = '';
       appData.blocks.forEach(b => {
-        blockHtml += `<option value="${b.id}">${b.name}</option>`;
+        datalistHtml += `<option value="${b.name}">`;
       });
-      blockSelect.innerHTML = blockHtml;
+      blockDatalist.innerHTML = datalistHtml;
 
       let typeHtml = '';
       appData.roomTypes.forEach(t => {
@@ -1543,7 +1560,8 @@
         if (!floor) return;
         title.innerText = 'Edit Struktur Lantai';
         document.getElementById('editFloorId').value = floor.id;
-        blockSelect.value = floor.blockId;
+        const block = appData.blocks.find(b => b.id === floor.blockId);
+        blockInput.value = block ? block.name : '';
         document.getElementById('floorNumberInput').value = floor.floorNumber;
         document.getElementById('floorRoomCountInput').value = floor.roomCount;
         document.getElementById('floorPrefixInput').value = floor.prefix;
@@ -1560,13 +1578,29 @@
     function handleFloorSubmit(e) {
       e.preventDefault();
       const floorId = document.getElementById('editFloorId').value;
-      const blockId = document.getElementById('floorBlockSelect').value;
+      const blockNameInput = document.getElementById('floorBlockInput').value.trim();
       const floorNumber = Number(document.getElementById('floorNumberInput').value);
       const roomCount = Number(document.getElementById('floorRoomCountInput').value);
       const prefix = document.getElementById('floorPrefixInput').value.trim() || `L${floorNumber}`;
       const defaultTypeId = document.getElementById('floorDefaultTypeSelect').value;
 
+      if (!blockNameInput) {
+        showToast("Nama Blok tidak boleh kosong!", "error");
+        return;
+      }
+
       requestDoubleConfirmation('Generasi Struktur Kamar', 'Kamar akan di-generate/diperbarui untuk lantai ini.', () => {
+        // Cari atau buat blok baru jika belum ada
+        let block = appData.blocks.find(b => b.name.toLowerCase() === blockNameInput.toLowerCase());
+        if (!block) {
+          block = {
+            id: `blk-${Date.now()}`,
+            name: blockNameInput
+          };
+          appData.blocks.push(block);
+        }
+        const blockId = block.id;
+
         let floor = appData.floors.find(f => f.id === floorId);
 
         if (!floor) {
