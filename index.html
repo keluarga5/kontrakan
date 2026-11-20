@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KosKu Manager - Manajemen Kos & Auto-Backup Telegram JSON</title>
+  <title>KosKu Manager - Auto Direct Sync Telegram Channel</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -63,7 +63,7 @@
       scrollbar-width: none;
     }
 
-    /* FIX Z-INDEX STACKING FOR OVERLAPPING MODALS */
+    /* MANDATORY Z-INDEX FIX FOR OVERLAPPING MODALS */
     #doubleConfirmModal {
       z-index: 99999 !important;
     }
@@ -72,10 +72,10 @@
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col pb-20 md:pb-6">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col pb-24">
 
   <!-- TOP HEADER NAVBAR -->
-  <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
+  <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="bg-brand-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/30">
@@ -85,23 +85,23 @@
           <h1 class="font-bold text-base md:text-lg leading-tight flex items-center gap-2">
             KosKu Manager
             <span id="telegramStatusBadge" class="text-[10px] font-normal px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center gap-1">
-              <i class="fa-brands fa-telegram text-sky-400"></i> Auto JSON Telegram
+              <i class="fa-brands fa-telegram text-sky-400"></i> Saluran Auto Pin
             </span>
           </h1>
-          <p class="text-xs text-slate-400 hidden sm:block">Kelola Kamar, Jatuh Tempo, & Auto-Backup Saluran Telegram</p>
+          <p class="text-xs text-slate-400 hidden sm:block">Kelola Sewa Kos & Auto Direct Sync Telegram Channel</p>
         </div>
       </div>
 
-      <!-- Quick Actions Header -->
+      <!-- Quick Actions Top Header -->
       <div class="flex items-center space-x-2">
-        <input type="month" id="globalMonthPicker" class="bg-slate-800 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500">
+        <div class="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
+          <i class="fa-solid fa-calendar-days text-slate-400 text-xs"></i>
+          <input type="month" id="globalMonthPicker" class="bg-transparent text-slate-200 text-xs font-semibold focus:outline-none">
+        </div>
         
-        <button onclick="pullFromTelegram()" class="p-2 bg-sky-900/70 hover:bg-sky-800 rounded-lg border border-sky-700 text-sky-300 transition" title="Restore Data JSON dari Telegram">
-          <i class="fa-solid fa-cloud-arrow-down"></i>
-        </button>
-
-        <button onclick="openSettingsModal()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 text-slate-300 hover:text-white transition" title="Pengaturan Telegram">
-          <i class="fa-solid fa-gear"></i>
+        <button onclick="restoreDirectFromTelegramChannel()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition" title="Ambil Data Langsung dari Saluran Telegram">
+          <i id="syncSpinIcon" class="fa-solid fa-cloud-arrow-down"></i>
+          <span class="hidden sm:inline">Ambil Data Telegram</span>
         </button>
       </div>
     </div>
@@ -110,7 +110,7 @@
   <!-- MAIN APP CONTAINER -->
   <main class="max-w-7xl mx-auto w-full px-4 pt-4 flex-1">
 
-    <!-- SUMMARY METRICS CARDS -->
+    <!-- METRICS SUMMARY CARDS -->
     <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
       <!-- Total Pemasukan -->
       <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-xs flex flex-col justify-between">
@@ -126,7 +126,7 @@
         </div>
       </div>
 
-      <!-- Total Menunggak / Belum Lunas -->
+      <!-- Total Menunggak -->
       <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-xs flex flex-col justify-between">
         <div class="flex items-center justify-between text-xs text-slate-500 mb-1">
           <span>Total Tunggakan</span>
@@ -136,7 +136,7 @@
         </div>
         <div>
           <h3 id="statTotalPending" class="text-lg md:text-xl font-bold text-rose-600">Rp 0</h3>
-          <p id="statPendingRoomsCount" class="text-[11px] text-slate-400 mt-0.5">0 Kamar Menunggak/Dicicil</p>
+          <p id="statPendingRoomsCount" class="text-[11px] text-slate-400 mt-0.5">0 Kamar Belum Lunas</p>
         </div>
       </div>
 
@@ -154,53 +154,33 @@
         </div>
       </div>
 
-      <!-- Telegram Auto JSON Card -->
+      <!-- Telegram Direct Sync Summary Card -->
       <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl p-3.5 border border-slate-700 shadow-xs flex flex-col justify-between">
         <div class="flex items-center justify-between text-xs text-slate-300 mb-1">
-          <span>Auto Backup Telegram</span>
-          <span id="syncSpinIcon" class="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+          <span>Saluran Telegram Sync</span>
+          <span class="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
             <i class="fa-brands fa-telegram text-sky-400"></i>
           </span>
         </div>
         <div class="flex gap-1.5 mt-2">
-          <button onclick="pullFromTelegram()" class="flex-1 py-1.5 px-2 bg-sky-600 hover:bg-sky-500 text-white font-medium text-[11px] rounded-lg flex items-center justify-center gap-1 transition">
+          <button onclick="restoreDirectFromTelegramChannel()" class="flex-1 py-1.5 px-2 bg-sky-600 hover:bg-sky-500 text-white font-medium text-[11px] rounded-lg flex items-center justify-center gap-1 transition">
             <i class="fa-solid fa-cloud-arrow-down"></i> Restore
           </button>
-          <button onclick="requestDoubleConfirmation('Kirim Manual File .JSON', 'File backup JSON akan langsung dikirim ke Saluran Telegram.', () => autoSendTelegramJson(false))" class="flex-1 py-1.5 px-2 bg-slate-700 hover:bg-slate-600 text-white font-medium text-[11px] rounded-lg flex items-center justify-center gap-1 transition">
-            <i class="fa-solid fa-paper-plane"></i> Send .JSON
+          <button onclick="requestDoubleConfirmation('Kirim & Sematkan JSON Telegram', 'Data akan diunggah ke saluran & langsung disematkan (pinned).', () => autoSendTelegramJson(false))" class="flex-1 py-1.5 px-2 bg-slate-700 hover:bg-slate-600 text-white font-medium text-[11px] rounded-lg flex items-center justify-center gap-1 transition">
+            <i class="fa-solid fa-paper-plane"></i> Sync JSON
           </button>
         </div>
       </div>
     </section>
 
-    <!-- NAVIGATION TABS -->
-    <div class="flex border-b border-slate-200 mb-4 overflow-x-auto no-scrollbar space-x-1">
-      <button onclick="switchTab('tab-rooms')" id="nav-tab-rooms" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-brand-600 text-brand-600 whitespace-nowrap flex items-center gap-2">
-        <i class="fa-solid fa-cubes"></i> Denah & Kamar
-      </button>
-      <button onclick="switchTab('tab-overdue')" id="nav-tab-overdue" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap flex items-center gap-2">
-        <i class="fa-solid fa-circle-exclamation text-rose-500"></i> Kamar Menunggak / Jatuh Tempo
-        <span id="badgeOverdueCount" class="px-2 py-0.5 text-xs rounded-full bg-rose-100 text-rose-700 font-bold hidden">0</span>
-      </button>
-      <button onclick="switchTab('tab-roomtypes')" id="nav-tab-roomtypes" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap flex items-center gap-2">
-        <i class="fa-solid fa-tags text-indigo-500"></i> Tipe Kamar & Tarif
-      </button>
-      <button onclick="switchTab('tab-finances')" id="nav-tab-finances" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap flex items-center gap-2">
-        <i class="fa-solid fa-chart-line"></i> Laporan Keuangan
-      </button>
-      <button onclick="switchTab('tab-structure')" id="nav-tab-structure" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap flex items-center gap-2">
-        <i class="fa-solid fa-sliders"></i> Pengaturan Blok & Lantai
-      </button>
-    </div>
-
-    <!-- TAB 1: DENAH & KAMAR -->
+    <!-- TAB 1: DENAH & DAFTAR KAMAR -->
     <section id="tab-rooms" class="tab-content">
-      <!-- Search & Filters Bar -->
+      <!-- Filters & Search Bar -->
       <div class="bg-white p-3.5 rounded-xl border border-slate-200 mb-4 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between shadow-xs">
         <div class="flex flex-1 flex-wrap items-center gap-2">
           <div class="relative flex-1 min-w-[180px]">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-            <input type="text" id="searchRoomInput" oninput="renderRooms()" placeholder="Cari nomor kamar / penghuni..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <input type="text" id="searchRoomInput" oninput="renderRooms()" placeholder="Cari nomor kamar / nama penghuni..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500">
           </div>
           
           <select id="filterBlockSelect" onchange="renderRooms()" class="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500">
@@ -220,7 +200,7 @@
           </select>
         </div>
 
-        <!-- Legend badges -->
+        <!-- Legend Badges -->
         <div class="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap pt-1 md:pt-0 border-t md:border-t-0 border-slate-100">
           <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Lunas</span>
           <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Dicicil</span>
@@ -229,7 +209,7 @@
         </div>
       </div>
 
-      <!-- ROOMS CONTAINER (BY BLOCK & FLOOR) -->
+      <!-- ROOMS CONTAINER (GROUPS BY BLOCK & FLOOR) -->
       <div id="roomsContainer" class="space-y-6">
         <!-- Rendered dynamically -->
       </div>
@@ -240,10 +220,10 @@
       <div class="bg-white p-4 rounded-xl border border-slate-200 mb-4 flex items-center justify-between shadow-xs">
         <div>
           <h2 class="font-bold text-slate-800 text-base">Daftar Kamar Belum Lunas & Jatuh Tempo</h2>
-          <p class="text-xs text-slate-500">Pantau kamar yang mendekati atau melewati batas waktu pembayaran</p>
+          <p class="text-xs text-slate-500">Kamar yang menunggak atau dicicil pada periode aktif</p>
         </div>
         <button onclick="sendTelegramSummaryReport()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-xs">
-          <i class="fa-brands fa-telegram"></i> Send Rekap Telegram
+          <i class="fa-brands fa-telegram"></i> Kirim Rekap Telegram
         </button>
       </div>
 
@@ -253,7 +233,7 @@
             <thead>
               <tr class="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold text-[11px]">
                 <th class="py-3 px-4">Kamar & Tipe</th>
-                <th class="py-3 px-4">Penghuni</th>
+                <th class="py-3 px-4">Penghuni / WA</th>
                 <th class="py-3 px-4">Jatuh Tempo</th>
                 <th class="py-3 px-4 text-right">Tagihan</th>
                 <th class="py-3 px-4 text-right">Dibayar</th>
@@ -274,10 +254,10 @@
     <section id="tab-roomtypes" class="tab-content hidden">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        <!-- Add/Edit Room Type Form -->
+        <!-- Form Add/Edit Room Type -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <h3 class="font-bold text-slate-800 text-sm mb-1" id="typeFormTitle">Tambah Tipe Kamar Baru</h3>
-          <p class="text-xs text-slate-500 mb-4">Buat kategori tipe kamar seperti VIP, Deluxe, Standard dengan harga bulanan terstandar.</p>
+          <p class="text-xs text-slate-500 mb-4">Buat kategori tipe kamar seperti VIP, Deluxe, Standard.</p>
 
           <form id="roomTypeForm" onsubmit="handleRoomTypeSubmit(event)" class="space-y-3 text-xs">
             <input type="hidden" id="typeIdInput">
@@ -294,7 +274,7 @@
 
             <div>
               <label class="block font-medium text-slate-700 mb-1">Fasilitas / Catatan Tipe</label>
-              <textarea id="typeDescInput" rows="2" placeholder="Contoh: AC, Kamar Mandi Dalam, Kasur Queen..." class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-500"></textarea>
+              <textarea id="typeDescInput" rows="2" placeholder="Contoh: AC, Kamar Mandi Dalam, Kasur Springbed..." class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-500"></textarea>
             </div>
 
             <div class="flex gap-2 pt-1">
@@ -308,8 +288,8 @@
 
         <!-- Room Types List -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs md:col-span-2">
-          <h3 class="font-bold text-slate-800 text-sm mb-1">Daftar Tipe Kamar</h3>
-          <p class="text-xs text-slate-500 mb-3">Tipe kamar dapat dipilih saat menambahkan/mengatur kamar di setiap lantai.</p>
+          <h3 class="font-bold text-slate-800 text-sm mb-1">Daftar Tipe Kamar & Tarif</h3>
+          <p class="text-xs text-slate-500 mb-3">Tipe kamar yang tersedia di kos/kontrakan Anda.</p>
 
           <div id="roomTypesListContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <!-- Rendered dynamically -->
@@ -319,21 +299,23 @@
       </div>
     </section>
 
-    <!-- TAB 4: LAPORAN KEUANGAN -->
-    <section id="tab-finances" class="tab-content hidden">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <!-- Chart Card -->
+    <!-- TAB 4: PENGATURAN & FINANCIAL DASHBOARD & STRUCTURE -->
+    <section id="tab-settings" class="tab-content hidden space-y-6">
+      
+      <!-- Financial Analytics Section -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Chart -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 md:col-span-2 shadow-xs">
-          <h3 class="font-bold text-slate-800 text-sm mb-3">Ringkasan Pemasukan vs Menunggak</h3>
-          <div class="h-64 relative">
+          <h3 class="font-bold text-slate-800 text-sm mb-3">Grafik Pemasukan vs Tunggakan</h3>
+          <div class="h-60 relative">
             <canvas id="financeChart"></canvas>
           </div>
         </div>
 
-        <!-- Financial Overview Card -->
+        <!-- Financial Overview -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 flex flex-col justify-between shadow-xs">
           <div>
-            <h3 class="font-bold text-slate-800 text-sm mb-3">Rincian Keuangan</h3>
+            <h3 class="font-bold text-slate-800 text-sm mb-3">Ringkasan Keuangan</h3>
             <div class="space-y-3 text-xs">
               <div class="flex justify-between items-center py-2 border-b border-slate-100">
                 <span class="text-slate-500">Target Total Sewa</span>
@@ -348,7 +330,7 @@
                 <span id="finTotalRemaining" class="font-bold text-rose-600">Rp 0</span>
               </div>
               <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                <span class="text-slate-500">Persentase Pelunasan</span>
+                <span class="text-slate-500">Pelunasan</span>
                 <span id="finPaidPercentage" class="font-bold text-brand-600">0%</span>
               </div>
             </div>
@@ -356,48 +338,62 @@
 
           <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
             <button onclick="exportDataJSON()" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center gap-1">
-              <i class="fa-solid fa-download"></i> Export JSON
+              <i class="fa-solid fa-download"></i> Backup JSON
             </button>
             <button onclick="document.getElementById('importFileInput').click()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1">
-              <i class="fa-solid fa-file-import"></i> Import JSON
+              <i class="fa-solid fa-file-import"></i> Restore JSON
             </button>
             <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importDataJSON(event)">
           </div>
         </div>
       </div>
 
-      <!-- Payment History Table -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4">
-        <h3 class="font-bold text-slate-800 text-sm mb-3">Riwayat Pembayaran Terbaru</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr class="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold text-[11px]">
-                <th class="py-2.5 px-3">Tanggal Bayar</th>
-                <th class="py-2.5 px-3">Kamar / Penghuni</th>
-                <th class="py-2.5 px-3">Periode</th>
-                <th class="py-2.5 px-3 text-right">Jumlah Dibayar</th>
-                <th class="py-2.5 px-3 text-right">Sisa Kurang</th>
-                <th class="py-2.5 px-3">Catatan</th>
-                <th class="py-2.5 px-3 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="paymentHistoryBody" class="divide-y divide-slate-100">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
+      <!-- Telegram Direct Channel Sync Config -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i class="fa-brands fa-telegram text-sky-500 text-lg"></i>
+            Integrasi Saluran Telegram (Direct Auto-Sync & Pin)
+          </h3>
+          <span class="text-[10px] bg-sky-50 text-sky-700 px-2 py-0.5 rounded font-semibold">Aktif</span>
+        </div>
+        
+        <p class="text-xs text-slate-500">
+          Setiap perubahan data di HP kamu akan **otomatis dikirimkan sebagai file `.json` dan disematkan (pinned)** di Saluran Telegram. HP lain tinggal menekan tombol <b>Ambil Data Telegram</b> untuk memulihkan data terkini.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Telegram Bot Token</label>
+            <input type="text" id="cfgTelegramToken" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-mono bg-slate-50">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">ID Saluran / Chat ID Telegram</label>
+            <input type="text" id="cfgTelegramChatId" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-mono bg-slate-50">
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 pt-2">
+          <button onclick="testTelegramMessage()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">
+            <i class="fa-paper-plane mr-1"></i> Tes Kirim Pesan Bot
+          </button>
+          <button onclick="restoreDirectFromTelegramChannel()" class="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg">
+            <i class="fa-solid fa-cloud-arrow-down mr-1"></i> Ambil / Restore dari Saluran Pinned
+          </button>
+          <button onclick="requestDoubleConfirmation('Unggah Manual ke Telegram', 'Data akan diunggah dan disematkan di saluran.', () => autoSendTelegramJson(false))" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg">
+            <i class="fa-solid fa-file-export mr-1"></i> Unggah & Pin .JSON Sekarang
+          </button>
+          <button onclick="saveSettingsForm()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg ml-auto">
+            Simpan Konfigurasi
+          </button>
         </div>
       </div>
-    </section>
 
-    <!-- TAB 5: PENGATURAN BLOK & LANTAI -->
-    <section id="tab-structure" class="tab-content hidden">
+      <!-- Structure Management & Room Generator -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        <!-- Add/Edit Structure Form -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <h3 class="font-bold text-slate-800 text-sm mb-1">Pengaturan Kamar & Lantai</h3>
-          <p class="text-xs text-slate-500 mb-4">Atur jumlah kamar per lantai dan hubungkan ke Tipe Kamar secara fleksibel.</p>
+          <p class="text-xs text-slate-500 mb-4">Atur jumlah kamar per lantai dan hubungkan ke Tipe Kamar.</p>
 
           <form id="structureForm" onsubmit="handleStructureSubmit(event)" class="space-y-3 text-xs">
             <div>
@@ -435,50 +431,58 @@
           </form>
         </div>
 
-        <!-- Structure Display -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs md:col-span-2">
           <div class="flex items-center justify-between mb-3">
             <div>
-              <h3 class="font-bold text-slate-800 text-sm">Struktur Bangunan Kos</h3>
-              <p class="text-xs text-slate-500">Lantai dan kamar yang sudah dibuat</p>
+              <h3 class="font-bold text-slate-800 text-sm">Struktur Bangunan Kos Saat Ini</h3>
+              <p class="text-xs text-slate-500">Lantai dan kamar yang telah dikonfigurasi</p>
             </div>
-            <button onclick="requestDoubleConfirmation('Reset Ke Data Contoh Default', 'Semua data akan dikembalikan ke contoh awal.', resetDataWithSample)" class="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs hover:bg-amber-100">
+            <button onclick="requestDoubleConfirmation('Reset Ke Data Contoh Default', 'Semua data akan dikembalikan ke contoh bawaan.', resetDataWithSample)" class="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs hover:bg-amber-100 font-medium">
               <i class="fa-solid fa-rotate-left mr-1"></i> Reset Data Contoh
             </button>
           </div>
 
-          <div id="structureListContainer" class="space-y-3 text-xs max-h-[500px] overflow-y-auto pr-1">
+          <div id="structureListContainer" class="space-y-3 text-xs max-h-[400px] overflow-y-auto pr-1">
             <!-- Rendered dynamically -->
           </div>
         </div>
-
       </div>
+
     </section>
+
   </main>
 
-  <!-- BOTTOM MOBILE NAVBAR -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 shadow-lg px-1 py-1">
-    <div class="flex justify-around items-center">
-      <button onclick="switchTab('tab-rooms')" class="flex flex-col items-center py-1 px-2 text-slate-600 active:text-brand-600">
-        <i class="fa-solid fa-cubes text-base"></i>
-        <span class="text-[10px] mt-0.5">Denah</span>
+  <!-- PRIMARY BOTTOM NAVIGATION BAR (ONLY NAVIGATION MAIN IN THE APP) -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 text-slate-400 border-t border-slate-800 z-40 shadow-2xl">
+    <div class="max-w-7xl mx-auto flex justify-around items-center h-16 px-2">
+      
+      <!-- Tab 1: Kamar -->
+      <button onclick="switchTab('tab-rooms')" id="nav-tab-rooms" class="nav-bottom-btn flex flex-col items-center justify-center flex-1 h-full text-brand-400 transition">
+        <i class="fa-solid fa-cubes text-lg mb-1"></i>
+        <span class="text-[11px] font-semibold">Kamar</span>
       </button>
-      <button onclick="switchTab('tab-overdue')" class="flex flex-col items-center py-1 px-2 text-slate-600 active:text-brand-600">
-        <i class="fa-solid fa-triangle-exclamation text-base text-rose-500"></i>
-        <span class="text-[10px] mt-0.5">Menunggak</span>
+
+      <!-- Tab 2: Menunggak -->
+      <button onclick="switchTab('tab-overdue')" id="nav-tab-overdue" class="nav-bottom-btn flex flex-col items-center justify-center flex-1 h-full text-slate-400 hover:text-slate-200 transition relative">
+        <div class="relative">
+          <i class="fa-solid fa-triangle-exclamation text-lg text-rose-500 mb-1"></i>
+          <span id="badgeOverdueCount" class="absolute -top-1.5 -right-2 px-1.5 py-0.2 text-[9px] rounded-full bg-rose-600 text-white font-bold hidden">0</span>
+        </div>
+        <span class="text-[11px] font-semibold">Menunggak</span>
       </button>
-      <button onclick="switchTab('tab-roomtypes')" class="flex flex-col items-center py-1 px-2 text-slate-600 active:text-brand-600">
-        <i class="fa-solid fa-tags text-base text-indigo-500"></i>
-        <span class="text-[10px] mt-0.5">Tipe</span>
+
+      <!-- Tab 3: Tipe Kamar -->
+      <button onclick="switchTab('tab-roomtypes')" id="nav-tab-roomtypes" class="nav-bottom-btn flex flex-col items-center justify-center flex-1 h-full text-slate-400 hover:text-slate-200 transition">
+        <i class="fa-solid fa-tags text-lg text-indigo-400 mb-1"></i>
+        <span class="text-[11px] font-semibold">Tipe Kamar</span>
       </button>
-      <button onclick="switchTab('tab-finances')" class="flex flex-col items-center py-1 px-2 text-slate-600 active:text-brand-600">
-        <i class="fa-solid fa-chart-line text-base"></i>
-        <span class="text-[10px] mt-0.5">Keuangan</span>
+
+      <!-- Tab 4: Pengaturan & Analytics -->
+      <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="nav-bottom-btn flex flex-col items-center justify-center flex-1 h-full text-slate-400 hover:text-slate-200 transition">
+        <i class="fa-solid fa-sliders text-lg mb-1"></i>
+        <span class="text-[11px] font-semibold">Pengaturan</span>
       </button>
-      <button onclick="switchTab('tab-structure')" class="flex flex-col items-center py-1 px-2 text-slate-600 active:text-brand-600">
-        <i class="fa-solid fa-sliders text-base"></i>
-        <span class="text-[10px] mt-0.5">Struktur</span>
-      </button>
+
     </div>
   </nav>
 
@@ -626,7 +630,7 @@
           <div>
             <label class="block font-medium text-slate-700 mb-1">Tipe Kamar</label>
             <select id="editRoomTypeId" onchange="onRoomTypeSelectedInModal()" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold bg-white">
-              <!-- Options rendered dynamically -->
+              <!-- Dynamic options -->
             </select>
           </div>
         </div>
@@ -634,7 +638,6 @@
         <div>
           <label class="block font-medium text-slate-700 mb-1">Tarif Sewa Khusus Kamar Ini (Rp/Bulan)</label>
           <input type="number" id="editRoomPrice" step="50000" required class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold text-brand-600">
-          <span class="text-[10px] text-slate-400">Harga dapat disesuaikan berbeda dengan tipe standar jika ada kesepakatan khusus.</span>
         </div>
 
         <div class="border-t border-slate-100 pt-3">
@@ -660,7 +663,6 @@
             <div>
               <label class="block font-medium text-slate-700 mb-1">Tanggal Jatuh Tempo / Batas Pembayaran</label>
               <input type="date" id="editTenantDueDate" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold text-rose-600 bg-rose-50/50">
-              <span class="text-[10px] text-slate-400">Otomatis dihitung 1 bulan sejak Tanggal Masuk, atau dapat diatur manual.</span>
             </div>
           </div>
         </div>
@@ -670,78 +672,16 @@
           <button type="submit" class="w-1/2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md transition">Simpan Kamar</button>
         </div>
       </form>
-
-      <!-- History Section inside modal -->
-      <div class="mt-5 border-t border-slate-200 pt-3">
-        <h4 class="font-bold text-slate-800 text-xs mb-2"><i class="fa-solid fa-clock-rotate-left mr-1 text-slate-500"></i> Riwayat Pembayaran Kamar Ini</h4>
-        <div id="roomModalHistoryList" class="space-y-1.5 max-h-36 overflow-y-auto pr-1 text-xs">
-          <!-- Rendered via JS -->
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL 4: SETTINGS TELEGRAM INTEGRATION -->
-  <div id="settingsModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div>
-          <h3 class="font-bold text-slate-800 text-base"><i class="fa-brands fa-telegram text-sky-500 mr-1"></i> Telegram Auto-Backup Settings</h3>
-          <p class="text-xs text-slate-500">Saluran Backup .JSON Otomatis Ke Telegram</p>
-        </div>
-        <button onclick="closeModal('settingsModal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="mt-4 space-y-4 text-xs">
-        <div class="bg-sky-50 p-3.5 rounded-xl border border-sky-100 space-y-3">
-          <div class="flex items-center gap-2 text-sky-900 font-bold">
-            <i class="fa-solid fa-file-arrow-up text-sky-600"></i>
-            <span>Setelan Saluran Backup Telegram</span>
-          </div>
-          <p class="text-[11px] text-slate-600">Setiap perubahan data di HP kamu akan **langsung mengirimkan file dokumen `.json`** ke Saluran Telegram ini tanpa perlu pencet tombol unggah manual.</p>
-          
-          <div>
-            <label class="block font-medium text-slate-700 mb-1">Telegram Bot Token</label>
-            <input type="text" id="cfgTelegramToken" placeholder="7494826619:..." class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white font-mono">
-          </div>
-          <div>
-            <label class="block font-medium text-slate-700 mb-1">ID Saluran / Chat ID Telegram</label>
-            <input type="text" id="cfgTelegramChatId" placeholder="-1003967854319" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white font-mono">
-          </div>
-
-          <div class="flex items-center gap-2 pt-1">
-            <input type="checkbox" id="cfgAutoSendJson" class="w-4 h-4 text-brand-600 rounded">
-            <label for="cfgAutoSendJson" class="font-semibold text-slate-800">Otomatis kirim file .json ke Telegram saat data berubah</label>
-          </div>
-        </div>
-
-        <div class="flex gap-2">
-          <button onclick="testTelegramMessage()" class="flex-1 py-2 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-xl text-xs transition">
-            <i class="fa-paper-plane mr-1"></i> Tes Pesan Bot
-          </button>
-          <button onclick="autoSendTelegramJson(false)" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl text-xs transition">
-            <i class="fa-solid fa-file-export mr-1"></i> Kirim .JSON Sekarang
-          </button>
-        </div>
-
-        <div class="pt-2 border-t border-slate-100">
-          <button onclick="saveSettingsForm()" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition">
-            Simpan Pengaturan
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 
   <!-- TOAST NOTIFICATIONS -->
-  <div id="toastContainer" class="fixed bottom-16 md:bottom-5 right-5 z-50 flex flex-col space-y-2 max-w-sm"></div>
+  <div id="toastContainer" class="fixed bottom-20 right-5 z-50 flex flex-col space-y-2 max-w-sm"></div>
 
   <!-- JAVASCRIPT LOGIC ENGINE -->
   <script>
     /**
-     * INITIAL DEFAULT DATA MODEL
+     * DEFAULT DATA MODEL
      */
     const DEFAULT_DATA = {
       roomTypes: [
@@ -768,10 +708,9 @@
       }
     };
 
-    // State Holders
     let appData = null;
     let chartInstance = null;
-    let pendingConfirmedAction = null; // Callback for double confirmation modal
+    let pendingConfirmedAction = null;
 
     // INIT ON LOAD
     window.addEventListener('DOMContentLoaded', () => {
@@ -787,9 +726,9 @@
       renderAll();
     });
 
-    // STORAGE & TELEGRAM JSON AUTO-SEND
+    // STORAGE & TELEGRAM DIRECT SYNC ENGINE
     function loadDataFromStorage() {
-      const stored = localStorage.getItem('kosku_manager_telegram_v2');
+      const stored = localStorage.getItem('kosku_manager_telegram_v3');
       if (stored) {
         try {
           appData = JSON.parse(stored);
@@ -801,26 +740,22 @@
         initSampleData();
       }
 
-      // Ensure roomTypes array exists
       if (!appData.roomTypes || appData.roomTypes.length === 0) {
         appData.roomTypes = JSON.parse(JSON.stringify(DEFAULT_DATA.roomTypes));
       }
-
-      // Ensure settings exist
       if (!appData.settings) {
         appData.settings = { ...DEFAULT_DATA.settings };
       }
-      
+
       document.getElementById('cfgTelegramToken').value = appData.settings.telegramToken || DEFAULT_DATA.settings.telegramToken;
       document.getElementById('cfgTelegramChatId').value = appData.settings.telegramChatId || DEFAULT_DATA.settings.telegramChatId;
-      document.getElementById('cfgAutoSendJson').checked = appData.settings.autoSendJson !== false;
     }
 
     function saveDataToStorage(triggerAutoSend = true) {
-      localStorage.setItem('kosku_manager_telegram_v2', JSON.stringify(appData));
+      localStorage.setItem('kosku_manager_telegram_v3', JSON.stringify(appData));
       
-      if (triggerAutoSend && appData.settings && appData.settings.autoSendJson) {
-        autoSendTelegramJson(true); // Silent auto-send file .json in background
+      if (triggerAutoSend && appData.settings && appData.settings.autoSendJson !== false) {
+        autoSendTelegramJson(true); // Auto upload & pin .json to channel
       }
     }
 
@@ -828,7 +763,6 @@
       appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
       appData.rooms = [];
       
-      // Auto generate rooms according to floor structure
       appData.floors.forEach(flr => {
         const roomType = appData.roomTypes.find(t => t.id === flr.defaultTypeId) || appData.roomTypes[0];
         const price = roomType ? roomType.price : 1000000;
@@ -850,30 +784,20 @@
         }
       });
 
-      // Sample occupied rooms & payments
+      // Populate samples
       if (appData.rooms.length > 0) {
-        const today = new Date();
-        const curMonth = today.toISOString().slice(0, 7);
+        const curMonth = new Date().toISOString().slice(0, 7);
 
-        // Room 1
         appData.rooms[0].tenantName = "Budi Santoso";
         appData.rooms[0].tenantPhone = "081234567890";
         appData.rooms[0].startDate = `${curMonth}-05`;
         appData.rooms[0].dueDate = `${curMonth}-05`;
 
-        // Room 2
         appData.rooms[1].tenantName = "Siti Rahma";
         appData.rooms[1].tenantPhone = "085711223344";
         appData.rooms[1].startDate = `${curMonth}-10`;
         appData.rooms[1].dueDate = `${curMonth}-10`;
 
-        // Room 3
-        appData.rooms[2].tenantName = "Ahmad Dani";
-        appData.rooms[2].tenantPhone = "089600112233";
-        appData.rooms[2].startDate = `${curMonth}-01`;
-        appData.rooms[2].dueDate = `${curMonth}-01`;
-
-        // Payments
         appData.payments.push({
           id: 'pay-sample-1',
           roomId: appData.rooms[0].id,
@@ -908,13 +832,15 @@
       showToast("Data berhasil di-reset ke contoh default!", "success");
     }
 
-    // TELEGRAM AUTO FILE (.JSON) SENDER API
+    /**
+     * TELEGRAM AUTOMATIC UPLOAD & PIN ATTACHMENT
+     */
     async function autoSendTelegramJson(silent = false) {
       const token = appData.settings ? appData.settings.telegramToken : DEFAULT_DATA.settings.telegramToken;
       const chatId = appData.settings ? appData.settings.telegramChatId : DEFAULT_DATA.settings.telegramChatId;
 
       if (!token || !chatId) {
-        if (!silent) showToast("Token Bot atau ID Saluran belum diset!", "error");
+        if (!silent) showToast("Token Bot atau ID Saluran belum dikonfigurasi!", "error");
         return;
       }
 
@@ -925,11 +851,11 @@
         const jsonString = JSON.stringify(appData, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const timeStamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const filename = `kosku_backup_${timeStamp}.json`;
+        const filename = `kos_data.json`;
 
         const formData = new FormData();
         formData.append('chat_id', chatId);
-        formData.append('caption', `📦 *AUTO BACKUP KOSKU (.JSON)*\n🗓️ Tanggal: ${new Date().toLocaleString('id-ID')}\n✨ File backup database otomatis dikirim dari HP.`);
+        formData.append('caption', `📦 *AUTO BACKUP KOSKU (.JSON)*\n🗓️ Tanggal: ${new Date().toLocaleString('id-ID')}\n✨ Data otomatis diunggah & disematkan (pinned) dari aplikasi.`);
         formData.append('parse_mode', 'Markdown');
         formData.append('document', blob, filename);
 
@@ -939,10 +865,27 @@
         });
 
         const resData = await response.json();
-        if (resData.ok) {
-          if (!silent) showToast("File database .JSON berhasil dikirim ke Saluran Telegram!", "success");
+        if (resData.ok && resData.result) {
+          const messageId = resData.result.message_id;
+
+          // Automatically pin the uploaded JSON document message on the channel
+          try {
+            await fetch(`https://api.telegram.org/bot${token}/pinChatMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: chatId,
+                message_id: messageId,
+                disable_notification: true
+              })
+            });
+          } catch (pinErr) {
+            console.warn("Could not auto-pin message:", pinErr);
+          }
+
+          if (!silent) showToast("Data JSON berhasil dikirim & disematkan (pinned) di Saluran Telegram!", "success");
         } else {
-          throw new Error(resData.description || "Gagal mengirim file ke Telegram");
+          throw new Error(resData.description || "Gagal mengunggah file ke Telegram");
         }
       } catch (err) {
         console.error("Auto Telegram JSON Send Error:", err);
@@ -952,10 +895,15 @@
       }
     }
 
-    async function pullFromTelegram() {
+    /**
+     * RESTORE DIRECTLY FROM TELEGRAM CHANNEL (READS PINNED MESSAGE)
+     */
+    async function restoreDirectFromTelegramChannel() {
       const token = appData.settings ? appData.settings.telegramToken : DEFAULT_DATA.settings.telegramToken;
-      if (!token) {
-        showToast("Token Telegram belum dikonfigurasi!", "error");
+      const chatId = appData.settings ? appData.settings.telegramChatId : DEFAULT_DATA.settings.telegramChatId;
+
+      if (!token || !chatId) {
+        showToast("Token Telegram / ID Saluran belum dikonfigurasi!", "error");
         return;
       }
 
@@ -963,36 +911,50 @@
       if (spinIcon) spinIcon.classList.add('animate-spin');
 
       try {
-        // Retrieve updates from bot to find latest JSON document
-        const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?limit=50&offset=-50`);
-        const data = await res.json();
+        let docFileId = null;
 
-        let docMsg = null;
-        if (data.ok && data.result && data.result.length > 0) {
-          for (let i = data.result.length - 1; i >= 0; i--) {
-            const u = data.result[i];
-            const msg = u.channel_post || u.message;
-            if (msg && msg.document && msg.document.file_name && msg.document.file_name.endsWith('.json')) {
-              docMsg = msg;
-              break;
+        // Step 1: Call getChat to get pinned_message directly from channel
+        const chatRes = await fetch(`https://api.telegram.org/bot${token}/getChat?chat_id=${encodeURIComponent(chatId)}`);
+        const chatData = await chatRes.json();
+
+        if (chatData.ok && chatData.result && chatData.result.pinned_message) {
+          const pinned = chatData.result.pinned_message;
+          if (pinned.document && pinned.document.file_id) {
+            docFileId = pinned.document.file_id;
+          }
+        }
+
+        // Step 2: Fallback to getUpdates if getChat pinned_message isn't available
+        if (!docFileId) {
+          const updatesRes = await fetch(`https://api.telegram.org/bot${token}/getUpdates?limit=50&offset=-50`);
+          const updatesData = await updatesRes.json();
+
+          if (updatesData.ok && updatesData.result && updatesData.result.length > 0) {
+            for (let i = updatesData.result.length - 1; i >= 0; i--) {
+              const u = updatesData.result[i];
+              const msg = u.channel_post || u.message;
+              if (msg && msg.document && msg.document.file_name && msg.document.file_name.endsWith('.json')) {
+                docFileId = msg.document.file_id;
+                break;
+              }
             }
           }
         }
 
-        if (!docMsg) {
-          showToast("Tidak ada pesan file JSON di update Bot. Membuka pemilih file backup HP...", "info");
+        if (!docFileId) {
+          showToast("Tidak ditemukan dokumen .json di Saluran Telegram. Membuka pemilih file manual HP...", "info");
           document.getElementById('importFileInput').click();
           return;
         }
 
-        // Fetch file path
-        const fileRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${docMsg.document.file_id}`);
+        // Step 3: Fetch File Path
+        const fileRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${docFileId}`);
         const fileData = await fileRes.json();
         if (!fileData.ok || !fileData.result.file_path) {
-          throw new Error("Gagal mengambil lokasi file dari Telegram");
+          throw new Error("Gagal mengambil jalur file dari Telegram API");
         }
 
-        // Fetch JSON content
+        // Step 4: Download JSON Content
         const contentRes = await fetch(`https://api.telegram.org/file/bot${token}/${fileData.result.file_path}`);
         const jsonContent = await contentRes.json();
 
@@ -1000,13 +962,13 @@
           appData = jsonContent;
           saveDataToStorage(false);
           renderAll();
-          showToast("Data BERHASIL dipulihkan (restore) dari file JSON Telegram!", "success");
+          showToast("Data BERHASIL dipulihkan langsung dari Saluran Telegram!", "success");
         } else {
-          throw new Error("Format file JSON tidak sesuai");
+          throw new Error("Format file JSON Telegram tidak sesuai struktur KosKu");
         }
       } catch (err) {
-        console.error("Pull Telegram error:", err);
-        showToast("Gagal mengambil dari Telegram. Membuka pemilih file manual...", "info");
+        console.error("Direct Restore Telegram error:", err);
+        showToast(`Gagal restore dari Telegram: ${err.message}. Membuka import manual...`, "error");
         document.getElementById('importFileInput').click();
       } finally {
         if (spinIcon) spinIcon.classList.remove('animate-spin');
@@ -1018,7 +980,7 @@
       const chatId = appData.settings ? appData.settings.telegramChatId : DEFAULT_DATA.settings.telegramChatId;
 
       if (!token || !chatId) {
-        showToast("Pengaturan Bot Token / Saluran Telegram belum lengkap!", "error");
+        showToast("Bot Token / ID Saluran Telegram belum diset!", "error");
         return;
       }
 
@@ -1093,15 +1055,16 @@
       .catch(() => showToast("Gagal terhubung ke Telegram API", "error"));
     }
 
-    // DOUBLE CONFIRMATION DIALOG (Z-INDEX 99999 PERFECT OVERLAY)
+    /**
+     * DOUBLE CONFIRMATION DIALOG ENGINE (Z-INDEX 99999 FIX)
+     */
     function requestDoubleConfirmation(title, subtitle, actionCallback) {
       document.getElementById('confirmTitleStep1').textContent = title;
       document.getElementById('confirmSubtitleStep1').textContent = subtitle;
-      document.getElementById('confirmSubtitleStep2').textContent = `Tindakan '${title}' akan memperbarui memori lokal & mengirim file .json terbaru ke Telegram.`;
+      document.getElementById('confirmSubtitleStep2').textContent = `Tindakan '${title}' akan memperbarui data dan mengunggah JSON terbaru ke Saluran Telegram.`;
       
       pendingConfirmedAction = actionCallback;
 
-      // Show Step 1 first
       document.getElementById('confirmStep1').classList.remove('hidden');
       document.getElementById('confirmStep2').classList.add('hidden');
       openModal('doubleConfirmModal');
@@ -1120,7 +1083,9 @@
       }
     }
 
-    // UI RENDERERS & CALCULATIONS
+    /**
+     * RENDERERS & CALCULATIONS
+     */
     function renderAll() {
       populateFilterOptions();
       renderStats();
@@ -1128,12 +1093,10 @@
       renderOverdueTable();
       renderRoomTypesList();
       renderFinancialChart();
-      renderPaymentHistory();
       renderStructureList();
     }
 
     function populateFilterOptions() {
-      // Block Select
       const selectBlock = document.getElementById('filterBlockSelect');
       const curBlock = selectBlock.value;
       selectBlock.innerHTML = '<option value="ALL">Semua Blok</option>';
@@ -1145,7 +1108,6 @@
       });
       selectBlock.value = curBlock || 'ALL';
 
-      // Type Select
       const selectType = document.getElementById('filterTypeSelect');
       const curType = selectType.value;
       selectType.innerHTML = '<option value="ALL">Semua Tipe Kamar</option>';
@@ -1157,7 +1119,6 @@
       });
       selectType.value = curType || 'ALL';
 
-      // Structure Form Select Default Type
       const structTypeSel = document.getElementById('structDefaultTypeSelect');
       if (structTypeSel) {
         structTypeSel.innerHTML = '';
@@ -1328,7 +1289,6 @@
         }
       }
 
-      // Calculate Due Date Badge
       let dueDateBadge = '';
       if (isOccupied && room.dueDate) {
         const today = new Date();
@@ -1498,7 +1458,7 @@
       const description = document.getElementById('typeDescInput').value.trim();
 
       if (!name || price <= 0) {
-        showToast("Mohon isi nama tipe dan harga bulanan dengan benar!", "error");
+        showToast("Isi nama tipe dan harga bulanan!", "error");
         return;
       }
 
@@ -1601,42 +1561,6 @@
       });
     }
 
-    function renderPaymentHistory() {
-      const tbody = document.getElementById('paymentHistoryBody');
-      tbody.innerHTML = '';
-
-      const activeMonth = document.getElementById('globalMonthPicker').value;
-      const history = appData.payments.filter(p => p.monthPeriod === activeMonth);
-
-      if (history.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400">Belum ada transaksi pembayaran bulan ini.</td></tr>`;
-        return;
-      }
-
-      history.sort((a, b) => new Date(b.payDate) - new Date(a.payDate));
-
-      history.forEach(p => {
-        const room = appData.rooms.find(r => r.id === p.roomId);
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50";
-
-        tr.innerHTML = `
-          <td class="py-2.5 px-3 text-slate-600">${p.payDate || '-'}</td>
-          <td class="py-2.5 px-3 font-semibold text-slate-800">${room ? room.roomNumber : 'Kamar'} - ${room ? (room.tenantName || 'Penghuni') : ''}</td>
-          <td class="py-2.5 px-3 text-slate-500">${p.monthPeriod}</td>
-          <td class="py-2.5 px-3 text-right font-bold text-emerald-600">${formatRupiah(p.paidAmount)}</td>
-          <td class="py-2.5 px-3 text-right text-rose-500 font-medium">${formatRupiah(p.remainingAmount)}</td>
-          <td class="py-2.5 px-3 text-slate-500 italic">${p.notes || '-'}</td>
-          <td class="py-2.5 px-3 text-center">
-            <button onclick="requestDoubleConfirmation('Hapus Catatan Pembayaran', 'Catatan transaksi ini akan dihapus dari sistem.', () => deletePayment('${p.id}'))" class="text-rose-500 hover:text-rose-700 p-1">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
     function renderStructureList() {
       const container = document.getElementById('structureListContainer');
       container.innerHTML = '';
@@ -1683,7 +1607,6 @@
       });
     }
 
-    // FORM HANDLERS & MODAL EDIT LOGIC
     function handleStructureSubmit(event) {
       event.preventDefault();
       const blockName = document.getElementById('structBlockInput').value.trim();
@@ -1702,7 +1625,7 @@
 
       requestDoubleConfirmation(
         `Perbarui Struktur ${blockName} Lt ${floorNum}`,
-        `Sistem akan menambah/menyesuaikan ${roomCount} kamar dengan Tipe ${typeObj.name}.`,
+        `Sistem akan menyesuaikan/menambah ${roomCount} kamar Tipe ${typeObj.name}.`,
         () => {
           let block = appData.blocks.find(b => b.name.toLowerCase() === blockName.toLowerCase());
           if (!block) {
@@ -1759,7 +1682,7 @@
 
     function deleteBlockStructure(blockId) {
       appData.blocks = appData.blocks.filter(b => b.id !== blockId);
-      appData.floors = appData.floors.filter(f => f.id !== blockId);
+      appData.floors = appData.floors.filter(f => f.blockId !== blockId);
       appData.rooms = appData.rooms.filter(r => r.blockId !== blockId);
       saveDataToStorage();
       renderAll();
@@ -1779,7 +1702,6 @@
 
       document.getElementById('editRoomNumber').value = room.roomNumber;
 
-      // Populate Type Select inside Room Edit Modal
       const typeSelect = document.getElementById('editRoomTypeId');
       typeSelect.innerHTML = '';
       appData.roomTypes.forEach(t => {
@@ -1796,26 +1718,6 @@
       document.getElementById('editTenantStartDate').value = room.startDate || '';
       document.getElementById('editTenantDueDate').value = room.dueDate || '';
 
-      const historyList = document.getElementById('roomModalHistoryList');
-      const roomPayments = appData.payments.filter(p => p.roomId === room.id);
-      
-      if (roomPayments.length === 0) {
-        historyList.innerHTML = `<p class="text-slate-400 italic">Belum ada riwayat pembayaran.</p>`;
-      } else {
-        historyList.innerHTML = roomPayments.map(p => `
-          <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
-            <div>
-              <span class="font-bold text-slate-800">${p.monthPeriod}</span>
-              <span class="text-[10px] text-slate-400 block">${p.payDate || ''} - ${p.notes || ''}</span>
-            </div>
-            <div class="text-right">
-              <span class="font-bold text-emerald-600 block">${formatRupiah(p.paidAmount)}</span>
-              ${p.remainingAmount > 0 ? `<span class="text-[10px] text-rose-500 font-semibold">Sisa ${formatRupiah(p.remainingAmount)}</span>` : '<span class="text-[10px] text-emerald-600">Lunas</span>'}
-            </div>
-          </div>
-        `).join('');
-      }
-
       openModal('roomDetailModal');
     }
 
@@ -1831,7 +1733,6 @@
       const startDateVal = document.getElementById('editTenantStartDate').value;
       if (!startDateVal) return;
       const start = new Date(startDateVal);
-      // Auto set due date to 1 month after start date
       start.setMonth(start.getMonth() + 1);
       const yyyy = start.getFullYear();
       const mm = String(start.getMonth() + 1).padStart(2, '0');
@@ -1868,7 +1769,7 @@
           saveDataToStorage();
           renderAll();
           closeModal('roomDetailModal');
-          showToast("Detail kamar & data penghuni diperbarui!", "success");
+          showToast("Detail kamar & penghuni diperbarui!", "success");
         }
       );
     }
@@ -1892,7 +1793,7 @@
       else if (paidAmount > 0) status = 'Dicicil';
 
       requestDoubleConfirmation(
-        `Catat Pembayaran Kamar ${room.roomNumber}`,
+        `Catat Bayar Kamar ${room.roomNumber}`,
         `Dibayar: ${formatRupiah(paidAmount)} | Status: ${status} (Sisa ${formatRupiah(remainingAmount)})`,
         () => {
           let payObj = appData.payments.find(p => p.roomId === roomId && p.monthPeriod === monthPeriod);
@@ -1980,13 +1881,6 @@
       }
     }
 
-    function deletePayment(payId) {
-      appData.payments = appData.payments.filter(p => p.id !== payId);
-      saveDataToStorage();
-      renderAll();
-      showToast("Catatan pembayaran dihapus.", "success");
-    }
-
     function saveSettingsForm() {
       requestDoubleConfirmation(
         "Simpan Pengaturan Telegram",
@@ -1995,10 +1889,8 @@
           if (!appData.settings) appData.settings = {};
           appData.settings.telegramToken = document.getElementById('cfgTelegramToken').value.trim();
           appData.settings.telegramChatId = document.getElementById('cfgTelegramChatId').value.trim();
-          appData.settings.autoSendJson = document.getElementById('cfgAutoSendJson').checked;
 
           saveDataToStorage(false);
-          closeModal('settingsModal');
           showToast("Pengaturan Telegram tersimpan!", "success");
         }
       );
@@ -2008,11 +1900,11 @@
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `Backup_Kosku_${new Date().toISOString().slice(0, 10)}.json`);
+      downloadAnchor.setAttribute("download", `kos_data_${new Date().toISOString().slice(0, 10)}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-      showToast("File backup JSON berhasil di-download!", "success");
+      showToast("File backup JSON di-download!", "success");
     }
 
     function importDataJSON(event) {
@@ -2044,20 +1936,22 @@
       reader.readAsText(file);
     }
 
-    // UI SWITCHING & HELPERS
+    /**
+     * BOTTOM NAVIGATION TAB SWITCHING
+     */
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.getElementById(tabId).classList.remove('hidden');
 
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('border-brand-600', 'text-brand-600');
-        btn.classList.add('border-transparent', 'text-slate-500');
+      document.querySelectorAll('.nav-bottom-btn').forEach(btn => {
+        btn.classList.remove('text-brand-400');
+        btn.classList.add('text-slate-400');
       });
 
       const activeNav = document.getElementById(`nav-${tabId}`);
       if (activeNav) {
-        activeNav.classList.remove('border-transparent', 'text-slate-500');
-        activeNav.classList.add('border-brand-600', 'text-brand-600');
+        activeNav.classList.remove('text-slate-400');
+        activeNav.classList.add('text-brand-400');
       }
     }
 
@@ -2067,10 +1961,6 @@
 
     function closeModal(modalId) {
       document.getElementById(modalId).classList.add('hidden');
-    }
-
-    function openSettingsModal() {
-      openModal('settingsModal');
     }
 
     function formatRupiah(num) {
