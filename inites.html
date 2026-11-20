@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kos & Property Manager - Manajemen Keuangan & Kamar</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js for Financial Reports -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Google Fonts Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Modern Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .modal-backdrop {
+      background-color: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col pb-20 md:pb-6">
+
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-brand-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/30">
+          <i class="fa-solid font-bold fa-building-user text-lg text-white"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
+            KosKu Manager
+            <span id="cloudStatusBadge" class="text-[10px] font-normal px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              <i class="fa-solid fa-hard-drive text-amber-400 mr-1"></i>Lokal
+            </span>
+          </h1>
+          <p class="text-xs text-slate-400">Manajemen Sewa, Keuangan & Tunggakan</p>
+        </div>
+      </div>
+
+      <!-- Header Quick Actions -->
+      <div class="flex items-center space-x-2">
+        <input type="month" id="globalMonthPicker" class="bg-slate-800 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500">
+        
+        <button onclick="openSettingsModal()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 text-slate-300 hover:text-white transition" title="Pengaturan & Backup">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto w-full px-4 pt-4 flex-1">
+
+    <!-- SUMMARY DASHBOARD CARDS -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <!-- Total Pemasukan -->
+      <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+          <span>Pemasukan Bulan Ini</span>
+          <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i class="fa-solid fa-wallet"></i>
+          </span>
+        </div>
+        <div>
+          <h3 id="statTotalPaid" class="text-lg md:text-xl font-bold text-emerald-600">Rp 0</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Sudah diterima</p>
+        </div>
+      </div>
+
+      <!-- Total Tunggakan / Belum Lunas -->
+      <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+          <span>Total Tunggakan</span>
+          <span class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </span>
+        </div>
+        <div>
+          <h3 id="statTotalPending" class="text-lg md:text-xl font-bold text-rose-600">Rp 0</h3>
+          <p id="statPendingRoomsCount" class="text-[11px] text-slate-400 mt-0.5">0 kamar belum lunas</p>
+        </div>
+      </div>
+
+      <!-- Okupansi Kamar -->
+      <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+          <span>Kamar Terisi</span>
+          <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <i class="fa-solid fa-door-open"></i>
+          </span>
+        </div>
+        <div>
+          <h3 id="statOccupancy" class="text-lg md:text-xl font-bold text-slate-800">0 / 0</h3>
+          <p id="statOccupancyPercent" class="text-[11px] text-slate-400 mt-0.5">0% Terisi</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Backup Telegram -->
+      <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl p-3.5 border border-slate-700 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs text-slate-300 mb-1">
+          <span>Telegram Backup</span>
+          <span class="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+            <i class="fa-paper-plane text-sky-400"></i>
+          </span>
+        </div>
+        <button onclick="sendTelegramSummaryReport()" class="w-full mt-2 py-1.5 px-3 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-white font-medium text-xs rounded-lg flex items-center justify-center gap-1.5 transition">
+          <i class="fa-brands fa-telegram"></i> Kirim Laporan
+        </button>
+      </div>
+    </section>
+
+    <!-- NAVIGATION TABS -->
+    <div class="flex border-b border-slate-200 mb-4 overflow-x-auto no-scrollbar space-x-1">
+      <button onclick="switchTab('tab-rooms')" id="nav-tab-rooms" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-brand-600 text-brand-600 whitespace-nowrap flex items-center gap-2">
+        <i class="fa-solid fa-cubes"></i> Denah & Kamar
+      </button>
+      <button onclick="switchTab('tab-overdue')" id="nav-tab-overdue" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap flex items-center gap-2">
+        <i class="fa-solid fa-circle-exclamation text-rose-500"></i> Kamar Menunggak
+        <span id="badgeOverdueCount" class="px-2 py-0.5 text-xs rounded-full bg-rose-100 text-rose-700 font-bold hidden">0</span>
+      </button>
+      <button onclick="switchTab('tab-finances')" id="nav-tab-finances" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap flex items-center gap-2">
+        <i class="fa-solid fa-chart-line"></i> Laporan Keuangan
+      </button>
+      <button onclick="switchTab('tab-structure')" id="nav-tab-structure" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap flex items-center gap-2">
+        <i class="fa-solid fa-sliders"></i> Pengaturan Blok & Lantai
+      </button>
+    </div>
+
+    <!-- TAB 1: DENAH & KAMAR -->
+    <section id="tab-rooms" class="tab-content">
+      <!-- Filters & Controls -->
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 mb-4 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <!-- Search & Filter -->
+        <div class="flex flex-1 flex-wrap items-center gap-2">
+          <div class="relative flex-1 min-w-[180px]">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="searchRoomInput" oninput="renderRooms()" placeholder="Cari penghuni / nomor kamar..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500">
+          </div>
+          
+          <select id="filterBlockSelect" onchange="renderRooms()" class="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <option value="ALL">Semua Blok</option>
+          </select>
+
+          <select id="filterStatusSelect" onchange="renderRooms()" class="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <option value="ALL">Semua Status</option>
+            <option value="Lunas">Lunas</option>
+            <option value="Dicicil">Dicicil (Sebagian)</option>
+            <option value="Menunggak">Menunggak</option>
+            <option value="Kosong">Kamar Kosong</option>
+          </select>
+        </div>
+
+        <!-- Legend / Indicators -->
+        <div class="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap pt-1 md:pt-0 border-t md:border-t-0 border-slate-100">
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Lunas</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Dicicil</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Menunggak</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> Kosong</span>
+        </div>
+      </div>
+
+      <!-- ROOMS GRID BY FLOOR AND BLOCK -->
+      <div id="roomsContainer" class="space-y-6">
+        <!-- Rendered dynamically via JS -->
+      </div>
+    </section>
+
+    <!-- TAB 2: KAMAR MENUNGGAK & DICICIL -->
+    <section id="tab-overdue" class="tab-content hidden">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <h2 class="font-bold text-slate-800 text-base">Daftar Kamar Belum Lunas</h2>
+            <p class="text-xs text-slate-500">Kamar yang belum bayar sewa atau baru bayar sebagian (dicicil)</p>
+          </div>
+          <button onclick="sendOverdueReportTelegram()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-sm">
+            <i class="fa-brands fa-telegram"></i> Kirim Rekap Menunggak ke Telegram
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold text-[11px]">
+                <th class="py-3 px-4">Kamar & Blok</th>
+                <th class="py-3 px-4">Penghuni</th>
+                <th class="py-3 px-4">No. HP / WA</th>
+                <th class="py-3 px-4 text-right">Total Tagihan</th>
+                <th class="py-3 px-4 text-right">Sudah Dibayar</th>
+                <th class="py-3 px-4 text-right">Sisa Kurang</th>
+                <th class="py-3 px-4 text-center">Status</th>
+                <th class="py-3 px-4 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="overdueTableBody" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: LAPORAN KEUANGAN -->
+    <section id="tab-finances" class="tab-content hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <!-- Monthly Chart -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 md:col-span-2 shadow-sm">
+          <h3 class="font-bold text-slate-800 text-sm mb-3">Ringkasan Pemasukan & Tunggakan Bulan Ini</h3>
+          <div class="h-64 relative">
+            <canvas id="financeChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Financial Summary Info Card -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 flex flex-col justify-between shadow-sm">
+          <div>
+            <h3 class="font-bold text-slate-800 text-sm mb-3">Rincian Pembayaran</h3>
+            <div class="space-y-3 text-xs">
+              <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                <span class="text-slate-500">Target Total Sewa</span>
+                <span id="finTargetTotal" class="font-bold text-slate-800">Rp 0</span>
+              </div>
+              <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                <span class="text-slate-500">Total Terbayar (Lunas & Cicilan)</span>
+                <span id="finTotalPaid" class="font-bold text-emerald-600">Rp 0</span>
+              </div>
+              <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                <span class="text-slate-500">Total Belum Terbayar (Sisa Kurang)</span>
+                <span id="finTotalRemaining" class="font-bold text-rose-600">Rp 0</span>
+              </div>
+              <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                <span class="text-slate-500">Persentase Pelunasan</span>
+                <span id="finPaidPercentage" class="font-bold text-brand-600">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+            <button onclick="exportDataJSON()" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-download"></i> Export Data JSON
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Riwayat Transaksi -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <h3 class="font-bold text-slate-800 text-sm mb-3">Riwayat Pembayaran Terbaru</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase font-semibold text-[11px]">
+                <th class="py-2.5 px-3">Tanggal Bayar</th>
+                <th class="py-2.5 px-3">Kamar / Penghuni</th>
+                <th class="py-2.5 px-3">Periode Bulan</th>
+                <th class="py-2.5 px-3 text-right">Jumlah Dibayar</th>
+                <th class="py-2.5 px-3 text-right">Sisa Tagihan</th>
+                <th class="py-2.5 px-3">Catatan / Metode</th>
+                <th class="py-2.5 px-3 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="paymentHistoryBody" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: PENGATURAN BLOK & LANTAI (DYNAMIC SETUP) -->
+    <section id="tab-structure" class="tab-content hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Form Tambah / Edit Blok & Lantai -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-800 text-sm mb-1">Pengaturan Kamar Per Lantai</h3>
+          <p class="text-xs text-slate-500 mb-4">Tambahkan Blok dan jumlah Kamar di setiap Lantai sesuai kebutuhan fisik bangunan Anda (Contoh: Blok A Lt 1: 10 kamar, Blok B Lt 1: 15 kamar, dst).</p>
+
+          <form id="structureForm" onsubmit="handleSaveStructure(event)" class="space-y-3 text-xs">
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Nama Blok</label>
+              <input type="text" id="structBlockInput" placeholder="Contoh: Blok A / Blok B / Gedung Utama" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-medium text-slate-700 mb-1">Nomor Lantai</label>
+                <input type="number" id="structFloorInput" min="1" max="100" value="1" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-500">
+              </div>
+
+              <div>
+                <label class="block font-medium text-slate-700 mb-1">Jumlah Kamar</label>
+                <input type="number" id="structRoomCountInput" min="1" max="100" value="10" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-500">
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Harga Default Per Bulan (Rp)</label>
+              <input type="number" id="structDefaultPriceInput" value="1000000" step="50000" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-500">
+            </div>
+
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Format Awalan Nomor Kamar</label>
+              <input type="text" id="structPrefixInput" placeholder="Contoh: A1 (jadi A101, A102...) atau Kosongkan" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-500">
+            </div>
+
+            <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-plus-circle"></i> Buat / Perbarui Struktur Kamar
+            </button>
+          </form>
+        </div>
+
+        <!-- List & Management Existing Structure -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm md:col-span-2">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="font-bold text-slate-800 text-sm">Struktur Bangunan & Kamar Saat Ini</h3>
+              <p class="text-xs text-slate-500">Daftar lantai dan jumlah kamar yang terdaftar</p>
+            </div>
+            <button onclick="resetDataWithSample()" class="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs hover:bg-amber-100">
+              <i class="fa-solid fa-rotate-left mr-1"></i> Isi Ulang Contoh Data bawaan
+            </button>
+          </div>
+
+          <div id="structureListContainer" class="space-y-3 text-xs max-h-[500px] overflow-y-auto pr-1">
+            <!-- Rendered dynamically via JS -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- BOTTOM NAVIGATION FOR MOBILE -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 shadow-lg px-2 py-1">
+    <div class="flex justify-around items-center">
+      <button onclick="switchTab('tab-rooms')" class="flex flex-col items-center py-1 px-3 text-slate-600 active:text-brand-600">
+        <i class="fa-solid fa-cubes text-base"></i>
+        <span class="text-[10px] mt-0.5">Denah</span>
+      </button>
+      <button onclick="switchTab('tab-overdue')" class="flex flex-col items-center py-1 px-3 text-slate-600 active:text-brand-600 relative">
+        <i class="fa-solid fa-triangle-exclamation text-base text-rose-500"></i>
+        <span class="text-[10px] mt-0.5">Menunggak</span>
+      </button>
+      <button onclick="switchTab('tab-finances')" class="flex flex-col items-center py-1 px-3 text-slate-600 active:text-brand-600">
+        <i class="fa-solid fa-chart-line text-base"></i>
+        <span class="text-[10px] mt-0.5">Keuangan</span>
+      </button>
+      <button onclick="switchTab('tab-structure')" class="flex flex-col items-center py-1 px-3 text-slate-600 active:text-brand-600">
+        <i class="fa-solid fa-sliders text-base"></i>
+        <span class="text-[10px] mt-0.5">Struktur</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MODAL: PEMBAYARAN PARSIAL (BAYAR BERAPA & KURANG BERAPA) -->
+  <div id="paymentModal" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-100 transition-all transform scale-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div>
+          <h3 class="font-bold text-slate-800 text-base" id="payModalTitle">Catat Pembayaran Sewa</h3>
+          <p class="text-xs text-slate-500" id="payModalSubtitle">Kamar A101 - Penghuni: Budi</p>
+        </div>
+        <button onclick="closeModal('paymentModal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="paymentForm" onsubmit="handleSavePayment(event)" class="mt-4 space-y-3.5 text-xs">
+        <input type="hidden" id="payRoomId">
+
+        <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div>
+            <span class="text-slate-500 block text-[11px]">Bulan Tagihan</span>
+            <input type="month" id="payMonthPeriod" required class="bg-white border border-slate-200 rounded px-2 py-1 font-semibold text-slate-800 w-full mt-1">
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[11px]">Tarif Sewa Kamar</span>
+            <span id="payRoomPriceDisplay" class="font-bold text-slate-800 block text-sm mt-1">Rp 0</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Jumlah Yang Dibayarkan (Rp)</label>
+          <input type="number" id="payAmountInput" required min="0" step="10000" oninput="calculateRemainingPayment()" placeholder="Masukan nominal yang dibayar..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <!-- Calculations Box -->
+        <div class="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl space-y-1.5">
+          <div class="flex justify-between items-center">
+            <span class="text-slate-600">Total Tagihan:</span>
+            <span id="calcTotalBill" class="font-bold text-slate-800">Rp 0</span>
+          </div>
+          <div class="flex justify-between items-center text-emerald-700 font-medium">
+            <span>Dibayar Saat Ini:</span>
+            <span id="calcPaidAmount">Rp 0</span>
+          </div>
+          <div class="flex justify-between items-center border-t border-indigo-200/60 pt-1.5 font-bold">
+            <span id="calcStatusLabel" class="text-slate-700">Sisa Kurang:</span>
+            <span id="calcRemainingAmount" class="text-rose-600 text-sm">Rp 0</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Tanggal Transaksi</label>
+          <input type="date" id="payDateInput" required class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Catatan / Metode Pembayaran (Opsional)</label>
+          <input type="text" id="payNoteInput" placeholder="Contoh: Transfer BCA, Titip DP Rp 500rb..." class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeModal('paymentModal')" class="w-1/2 py-2.5 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold rounded-xl">Batal</button>
+          <button type="submit" class="w-1/2 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl shadow-md transition">Simpan Pembayaran</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT PENGHUNI & KAMAR -->
+  <div id="roomDetailModal" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div>
+          <h3 class="font-bold text-slate-800 text-base" id="roomDetailTitle">Detail Kamar</h3>
+          <p class="text-xs text-slate-500" id="roomDetailSubtitle">Blok A - Lantai 1</p>
+        </div>
+        <button onclick="closeModal('roomDetailModal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="editRoomForm" onsubmit="handleSaveRoomDetails(event)" class="mt-4 space-y-3.5 text-xs">
+        <input type="hidden" id="editRoomId">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Nomor / Kode Kamar</label>
+            <input type="text" id="editRoomNumber" required class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tarif Sewa Per Bulan (Rp)</label>
+            <input type="number" id="editRoomPrice" step="50000" required class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold">
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-3">
+          <h4 class="font-bold text-slate-800 text-xs mb-2 text-brand-600"><i class="fa-solid fa-user-pen mr-1"></i> Informasi Penghuni Kos</h4>
+          
+          <div class="space-y-3">
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Nama Penghuni (Ubah jika diganti orang lain)</label>
+              <input type="text" id="editTenantName" placeholder="Kosongkan jika kamar sedang Kosong" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold text-slate-800">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-medium text-slate-700 mb-1">No. Handphone / WhatsApp</label>
+                <input type="text" id="editTenantPhone" placeholder="08123456789" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+              </div>
+              <div>
+                <label class="block font-medium text-slate-700 mb-1">Tanggal Masuk Kos</label>
+                <input type="date" id="editTenantStartDate" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeModal('roomDetailModal')" class="w-1/2 py-2.5 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold rounded-xl">Batal</button>
+          <button type="submit" class="w-1/2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md transition">Simpan Data Kamar</button>
+        </div>
+      </form>
+
+      <!-- History Section inside Room Modal -->
+      <div class="mt-6 border-t border-slate-200 pt-4">
+        <h4 class="font-bold text-slate-800 text-xs mb-2"><i class="fa-solid fa-clock-rotate-left mr-1 text-slate-500"></i> Riwayat Pembayaran Kamar Ini</h4>
+        <div id="roomModalHistoryList" class="space-y-2 max-h-40 overflow-y-auto pr-1 text-xs">
+          <!-- History items -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SETTINGS & CLOUD / TELEGRAM BACKUP -->
+  <div id="settingsModal" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div>
+          <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-cloud text-brand-600 mr-1"></i> Integration & Backup</h3>
+          <p class="text-xs text-slate-500">Telegram Bot & Cloud Supabase Settings</p>
+        </div>
+        <button onclick="closeModal('settingsModal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-5 text-xs">
+        <!-- Telegram Section -->
+        <div class="bg-sky-50/50 p-3.5 rounded-xl border border-sky-100 space-y-3">
+          <div class="flex items-center gap-2 text-sky-800 font-bold">
+            <i class="fa-brands fa-telegram text-base text-sky-500"></i>
+            <span>Integrasi Telegram Backup / HP Keluarga</span>
+          </div>
+          <p class="text-[11px] text-slate-600">Masukan Bot Token & Chat ID Telegram untuk menerima laporan keuangan dan backup data otomatis ke HP Anda & keluarga.</p>
+          
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Telegram Bot Token</label>
+            <input type="text" id="cfgTelegramToken" placeholder="Contoh: 123456789:ABCdefGhIJK..." class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Telegram Chat ID / Group ID</label>
+            <input type="text" id="cfgTelegramChatId" placeholder="Contoh: 987654321 atau -100123..." class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white">
+          </div>
+          <button onclick="testTelegramConnection()" class="w-full py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-lg text-xs transition">
+            <i class="fa-paper-plane mr-1"></i> Tes Kirim Pesan Uji Coba Telegram
+          </button>
+        </div>
+
+        <!-- Supabase Cloud Sync Section -->
+        <div class="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100 space-y-3">
+          <div class="flex items-center gap-2 text-emerald-900 font-bold">
+            <i class="fa-solid fa-database text-base text-emerald-600"></i>
+            <span>Database Cloud Supabase (Sync Antar HP)</span>
+          </div>
+          <p class="text-[11px] text-slate-600">Hubungkan ke Supabase agar data otomatis tersimpan di Cloud & dapat dibuka bersama keluarga di HP lain.</p>
+          
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Supabase Project URL</label>
+            <input type="text" id="cfgSupabaseUrl" placeholder="https://xyz.supabase.co" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Supabase Anon Key</label>
+            <input type="password" id="cfgSupabaseKey" placeholder="eyJhbGciOiJIUzI1Ni..." class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white">
+          </div>
+          
+          <div class="flex gap-2">
+            <button onclick="syncSupabaseData('PUSH')" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-xs transition">
+              <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload ke Supabase
+            </button>
+            <button onclick="syncSupabaseData('PULL')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-lg text-xs transition">
+              <i class="fa-solid fa-cloud-arrow-down mr-1"></i> Download dari Supabase
+            </button>
+          </div>
+        </div>
+
+        <!-- Import / Export Section -->
+        <div class="space-y-2 pt-2 border-t border-slate-100">
+          <h4 class="font-bold text-slate-700 text-xs">File Backup JSON</h4>
+          <div class="flex gap-2">
+            <button onclick="exportDataJSON()" class="flex-1 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-lg text-xs">
+              <i class="fa-solid fa-download mr-1"></i> Export Data
+            </button>
+            <label class="flex-1 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-lg text-xs text-center cursor-pointer">
+              <i class="fa-solid fa-upload mr-1"></i> Import Data
+              <input type="file" id="importJsonInput" onchange="importDataJSON(event)" accept=".json" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <button onclick="saveSettingsForm()" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition">
+          Simpan Pengaturan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-16 md:bottom-5 right-5 z-50 flex flex-col space-y-2 max-w-sm"></div>
+
+  <!-- JAVASCRIPT APPLICATION CODE -->
+  <script>
+    /**
+     * INITIAL DEFAULT STATE STRUCTURE
+     * Matches user exact prompt:
+     * - Blok A Lantai 1: 10 kamar
+     * - Blok B Lantai 1: 15 kamar
+     * - Blok A Lantai 2: 7 kamar
+     * - Blok B Lantai 2: 10 kamar
+     */
+    const DEFAULT_DATA = {
+      blocks: [
+        { id: 'blk-a', name: 'Blok A' },
+        { id: 'blk-b', name: 'Blok B' }
+      ],
+      floors: [
+        { id: 'flr-a1', blockId: 'blk-a', floorNumber: 1, roomCount: 10, prefix: 'A1', defaultPrice: 1200000 },
+        { id: 'flr-b1', blockId: 'blk-b', floorNumber: 1, roomCount: 15, prefix: 'B1', defaultPrice: 1000000 },
+        { id: 'flr-a2', blockId: 'blk-a', floorNumber: 2, roomCount: 7,  prefix: 'A2', defaultPrice: 1250000 },
+        { id: 'flr-b2', blockId: 'blk-b', floorNumber: 2, roomCount: 10, prefix: 'B2', defaultPrice: 1050000 }
+      ],
+      rooms: [], // Populated dynamically
+      payments: [],
+      settings: {
+        telegramToken: '',
+        telegramChatId: '',
+        supabaseUrl: '',
+        supabaseKey: ''
+      }
+    };
+
+    // Global State
+    let appData = null;
+    let chartInstance = null;
+
+    // Initialize App
+    window.addEventListener('DOMContentLoaded', () => {
+      // Set current month in month picker (YYYY-MM)
+      const now = new Date();
+      const currentMonth = now.toISOString().slice(0, 7);
+      document.getElementById('globalMonthPicker').value = currentMonth;
+
+      // Event listener for month change
+      document.getElementById('globalMonthPicker').addEventListener('change', () => {
+        renderAll();
+      });
+
+      // Load Data
+      loadDataFromStorage();
+
+      // Render App Views
+      renderAll();
+    });
+
+    // Save & Load Functions
+    function loadDataFromStorage() {
+      const stored = localStorage.getItem('kos_manager_app_data');
+      if (stored) {
+        try {
+          appData = JSON.parse(stored);
+        } catch (e) {
+          console.error("Failed to parse stored data", e);
+          initSampleData();
+        }
+      } else {
+        initSampleData();
+      }
+
+      // Fill settings modal fields
+      if (appData.settings) {
+        document.getElementById('cfgTelegramToken').value = appData.settings.telegramToken || '';
+        document.getElementById('cfgTelegramChatId').value = appData.settings.telegramChatId || '';
+        document.getElementById('cfgSupabaseUrl').value = appData.settings.supabaseUrl || '';
+        document.getElementById('cfgSupabaseKey').value = appData.settings.supabaseKey || '';
+      }
+      updateCloudStatusBadge();
+    }
+
+    function saveDataToStorage() {
+      localStorage.setItem('kos_manager_app_data', JSON.stringify(appData));
+      updateCloudStatusBadge();
+    }
+
+    function initSampleData() {
+      appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      
+      // Auto-generate rooms based on initial floor structure
+      appData.rooms = [];
+      appData.floors.forEach(flr => {
+        for (let i = 1; i <= flr.roomCount; i++) {
+          const roomNo = `${flr.prefix}-${i < 10 ? '0' + i : i}`;
+          const roomId = `room-${flr.id}-${i}`;
+          
+          appData.rooms.push({
+            id: roomId,
+            floorId: flr.id,
+            blockId: flr.blockId,
+            roomNumber: roomNo,
+            tenantName: '', // empty initially
+            tenantPhone: '',
+            startDate: '',
+            rentPrice: flr.defaultPrice
+          });
+        }
+      });
+
+      // Add dummy sample tenants for realistic preview
+      const sampleRooms = appData.rooms;
+      if (sampleRooms.length > 0) {
+        sampleRooms[0].tenantName = "Budi Santoso";
+        sampleRooms[0].tenantPhone = "081234567890";
+        sampleRooms[0].startDate = "2024-01-10";
+
+        sampleRooms[1].tenantName = "Siti Rahma";
+        sampleRooms[1].tenantPhone = "085711223344";
+        sampleRooms[1].startDate = "2024-02-01";
+
+        sampleRooms[2].tenantName = "Ahmad Dani";
+        sampleRooms[2].tenantPhone = "089600112233";
+        sampleRooms[2].startDate = "2024-03-15";
+
+        sampleRooms[11].tenantName = "Eko Prasetyo";
+        sampleRooms[11].tenantPhone = "082199887766";
+        sampleRooms[11].startDate = "2024-04-05";
+
+        // Add sample partial & lunas payments for current month
+        const currentMonth = document.getElementById('globalMonthPicker').value || new Date().toISOString().slice(0, 7);
+        appData.payments.push({
+          id: 'pay-sample-1',
+          roomId: sampleRooms[0].id,
+          monthPeriod: currentMonth,
+          totalBill: sampleRooms[0].rentPrice,
+          paidAmount: sampleRooms[0].rentPrice,
+          remainingAmount: 0,
+          status: 'Lunas',
+          payDate: `${currentMonth}-05`,
+          notes: 'Transfer Bank BCA'
+        });
+
+        appData.payments.push({
+          id: 'pay-sample-2',
+          roomId: sampleRooms[1].id,
+          monthPeriod: currentMonth,
+          totalBill: sampleRooms[1].rentPrice,
+          paidAmount: sampleRooms[1].rentPrice - 500000,
+          remainingAmount: 500000,
+          status: 'Dicicil',
+          payDate: `${currentMonth}-08`,
+          notes: 'Cicilan 1 Rp ' + (sampleRooms[1].rentPrice - 500000).toLocaleString('id-ID')
+        });
+      }
+
+      saveDataToStorage();
+    }
+
+    function resetDataWithSample() {
+      if (confirm("Reset ulang seluruh data ke contoh awal? Semua data inputan Anda akan diset ulang.")) {
+        initSampleData();
+        renderAll();
+        showToast("Data berhasil di-reset ke contoh awal!", "success");
+      }
+    }
+
+    // UPDATE UI VIEW & RENDER
+    function renderAll() {
+      populateFilterOptions();
+      renderStats();
+      renderRooms();
+      renderOverdueTable();
+      renderFinancialChart();
+      renderPaymentHistory();
+      renderStructureList();
+    }
+
+    // Populate Block Filters in Room tab
+    function populateFilterOptions() {
+      const select = document.getElementById('filterBlockSelect');
+      const currentVal = select.value;
+      select.innerHTML = '<option value="ALL">Semua Blok</option>';
+      
+      appData.blocks.forEach(blk => {
+        const opt = document.createElement('option');
+        opt.value = blk.id;
+        opt.textContent = blk.name;
+        select.appendChild(opt);
+      });
+      select.value = currentVal || 'ALL';
+    }
+
+    // Get Payment Status of a Room for selected month
+    function getRoomMonthStatus(roomId, monthPeriod) {
+      const room = appData.rooms.find(r => r.id === roomId);
+      if (!room || !room.tenantName || room.tenantName.trim() === '') {
+        return { status: 'Kosong', paid: 0, remaining: 0, total: 0 };
+      }
+
+      const payment = appData.payments.find(p => p.roomId === roomId && p.monthPeriod === monthPeriod);
+      const total = room.rentPrice || 0;
+
+      if (!payment) {
+        return {
+          status: 'Menunggak',
+          paid: 0,
+          remaining: total,
+          total: total
+        };
+      }
+
+      if (payment.paidAmount >= total) {
+        return {
+          status: 'Lunas',
+          paid: payment.paidAmount,
+          remaining: 0,
+          total: total,
+          paymentObj: payment
+        };
+      } else {
+        return {
+          status: 'Dicicil',
+          paid: payment.paidAmount,
+          remaining: total - payment.paidAmount,
+          total: total,
+          paymentObj: payment
+        };
+      }
+    }
+
+    // Calculate Summary Stats
+    function renderStats() {
+      const activeMonth = document.getElementById('globalMonthPicker').value;
+      let totalPaid = 0;
+      let totalPending = 0;
+      let pendingRoomsCount = 0;
+      let filledRoomsCount = 0;
+      const totalRoomsCount = appData.rooms.length;
+
+      appData.rooms.forEach(room => {
+        if (room.tenantName && room.tenantName.trim() !== '') {
+          filledRoomsCount++;
+        }
+
+        const stat = getRoomMonthStatus(room.id, activeMonth);
+        if (stat.status !== 'Kosong') {
+          totalPaid += stat.paid;
+          totalPending += stat.remaining;
+          if (stat.status === 'Menunggak' || stat.status === 'Dicicil') {
+            pendingRoomsCount++;
+          }
+        }
+      });
+
+      document.getElementById('statTotalPaid').textContent = formatRupiah(totalPaid);
+      document.getElementById('statTotalPending').textContent = formatRupiah(totalPending);
+      document.getElementById('statPendingRoomsCount').textContent = `${pendingRoomsCount} kamar belum lunas`;
+      document.getElementById('statOccupancy').textContent = `${filledRoomsCount} / ${totalRoomsCount}`;
+
+      const percent = totalRoomsCount > 0 ? Math.round((filledRoomsCount / totalRoomsCount) * 100) : 0;
+      document.getElementById('statOccupancyPercent').textContent = `${percent}% Terisi`;
+
+      // Badge on Overdue Tab
+      const badge = document.getElementById('badgeOverdueCount');
+      if (pendingRoomsCount > 0) {
+        badge.textContent = pendingRoomsCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    // RENDER ROOM GRID BY BLOCK & FLOOR
+    function renderRooms() {
+      const container = document.getElementById('roomsContainer');
+      container.innerHTML = '';
+
+      const activeMonth = document.getElementById('globalMonthPicker').value;
+      const searchQuery = document.getElementById('searchRoomInput').value.toLowerCase().trim();
+      const filterBlock = document.getElementById('filterBlockSelect').value;
+      const filterStatus = document.getElementById('filterStatusSelect').value;
+
+      // Group floors by blocks
+      appData.blocks.forEach(block => {
+        if (filterBlock !== 'ALL' && block.id !== filterBlock) return;
+
+        const blockFloors = appData.floors.filter(f => f.blockId === block.id);
+        if (blockFloors.length === 0) return;
+
+        // Block Container
+        const blockEl = document.createElement('div');
+        blockEl.className = "bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-5";
+
+        const blockHeader = `
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+              <i class="fa-solid fa-building text-brand-600"></i> ${block.name}
+            </h2>
+            <span class="text-xs bg-slate-100 text-slate-600 font-medium px-2.5 py-1 rounded-lg">
+              ${blockFloors.length} Lantai
+            </span>
+          </div>
+        `;
+        blockEl.innerHTML = blockHeader;
+
+        // Render each floor in block
+        blockFloors.forEach(floor => {
+          const floorRooms = appData.rooms.filter(r => r.floorId === floor.id);
+
+          // Filter Rooms
+          const filteredRooms = floorRooms.filter(room => {
+            const statusInfo = getRoomMonthStatus(room.id, activeMonth);
+            const matchesSearch = room.roomNumber.toLowerCase().includes(searchQuery) ||
+                                  (room.tenantName && room.tenantName.toLowerCase().includes(searchQuery));
+            const matchesStatus = filterStatus === 'ALL' || statusInfo.status === filterStatus;
+            return matchesSearch && matchesStatus;
+          });
+
+          if (filteredRooms.length === 0 && (searchQuery || filterStatus !== 'ALL')) {
+            return; // Hide empty floor when filtering
+          }
+
+          const floorSection = document.createElement('div');
+          floorSection.className = "space-y-2.5";
+
+          floorSection.innerHTML = `
+            <div class="flex items-center justify-between text-xs text-slate-500 font-semibold">
+              <span><i class="fa-solid fa-layer-group text-slate-400 mr-1"></i> Lantai ${floor.floorNumber} (${filteredRooms.length} Kamar)</span>
+              <span>Default: ${formatRupiah(floor.defaultPrice)}/bln</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              ${filteredRooms.map(room => createRoomCardHTML(room, activeMonth)).join('')}
+            </div>
+          `;
+
+          blockEl.appendChild(floorSection);
+        });
+
+        if (blockEl.children.length > 1) {
+          container.appendChild(blockEl);
+        }
+      });
+
+      if (container.children.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6">
+            <i class="fa-solid fa-door-closed text-4xl text-slate-300 mb-2"></i>
+            <p class="text-slate-500 text-sm font-medium">Tidak ada kamar yang sesuai dengan filter/pencarian Anda.</p>
+          </div>
+        `;
+      }
+    }
+
+    // Helper: Create HTML for Individual Room Card
+    function createRoomCardHTML(room, monthPeriod) {
+      const statusInfo = getRoomMonthStatus(room.id, monthPeriod);
+      const isOccupied = room.tenantName && room.tenantName.trim() !== '';
+
+      let badgeBg = "bg-slate-100 text-slate-600 border-slate-200";
+      let statusText = "Kosong";
+      let borderStyle = "border-slate-200";
+
+      if (isOccupied) {
+        if (statusInfo.status === 'Lunas') {
+          badgeBg = "bg-emerald-100 text-emerald-800 border-emerald-200";
+          statusText = "Lunas";
+          borderStyle = "border-emerald-300 bg-emerald-50/20";
+        } else if (statusInfo.status === 'Dicicil') {
+          badgeBg = "bg-amber-100 text-amber-800 border-amber-200";
+          statusText = `Dicicil (Kurang ${formatRupiah(statusInfo.remaining)})`;
+          borderStyle = "border-amber-300 bg-amber-50/20";
+        } else {
+          badgeBg = "bg-rose-100 text-rose-800 border-rose-200";
+          statusText = `Menunggak (${formatRupiah(statusInfo.remaining)})`;
+          borderStyle = "border-rose-300 bg-rose-50/20";
+        }
+      }
+
+      return `
+        <div class="bg-white rounded-xl border ${borderStyle} p-3 flex flex-col justify-between shadow-xs hover:shadow-md transition relative group">
+          
+          <div>
+            <!-- Room Header & Edit Icon -->
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="font-bold text-slate-800 text-sm flex items-center gap-1">
+                <i class="fa-solid fa-door-closed text-xs ${isOccupied ? 'text-brand-600' : 'text-slate-300'}"></i>
+                ${room.roomNumber}
+              </span>
+              <button onclick="openRoomDetailModal('${room.id}')" class="text-slate-400 hover:text-brand-600 p-1" title="Ubah Nama/Tarif">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+            </div>
+
+            <!-- Tenant Name -->
+            <div class="mb-2">
+              ${isOccupied 
+                ? `<div class="font-semibold text-xs text-slate-800 truncate" title="${room.tenantName}">
+                     <i class="fa-solid fa-user text-[10px] text-slate-400 mr-1"></i>${room.tenantName}
+                   </div>
+                   ${room.tenantPhone ? `<div class="text-[10px] text-slate-400"><i class="fa-brands fa-whatsapp text-emerald-500 mr-1"></i>${room.tenantPhone}</div>` : ''}`
+                : `<div class="text-xs text-slate-400 italic">Kamar Kosong</div>`
+              }
+            </div>
+          </div>
+
+          <!-- Price & Status Badge -->
+          <div class="pt-2 border-t border-slate-100/80">
+            <div class="text-[11px] font-semibold text-slate-700 mb-1.5 flex justify-between">
+              <span>Sewa:</span>
+              <span>${formatRupiah(room.rentPrice)}</span>
+            </div>
+
+            <div class="text-[10px] font-medium px-2 py-1 rounded-md border ${badgeBg} text-center mb-2 truncate">
+              ${statusText}
+            </div>
+
+            <!-- Action Buttons -->
+            ${isOccupied ? `
+              <button onclick="openPaymentModal('${room.id}')" class="w-full py-1.5 px-2 bg-slate-900 hover:bg-brand-600 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1 shadow-xs transition">
+                <i class="fa-solid fa-receipt"></i> Catat Bayar
+              </button>
+            ` : `
+              <button onclick="openRoomDetailModal('${room.id}')" class="w-full py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition">
+                <i class="fa-solid fa-user-plus"></i> Isi Penghuni
+              </button>
+            `}
+          </div>
+
+        </div>
+      `;
+    }
+
+    // TAB 2: OVERDUE TABLE RENDER
+    function renderOverdueTable() {
+      const tbody = document.getElementById('overdueTableBody');
+      tbody.innerHTML = '';
+
+      const activeMonth = document.getElementById('globalMonthPicker').value;
+      const overdueList = [];
+
+      appData.rooms.forEach(room => {
+        if (!room.tenantName || room.tenantName.trim() === '') return;
+
+        const stat = getRoomMonthStatus(room.id, activeMonth);
+        if (stat.status === 'Menunggak' || stat.status === 'Dicicil') {
+          const block = appData.blocks.find(b => b.id === room.blockId);
+          const floor = appData.floors.find(f => f.id === room.floorId);
+
+          overdueList.push({
+            room,
+            blockName: block ? block.name : '',
+            floorNumber: floor ? floor.floorNumber : '',
+            stat
+          });
+        }
+      });
+
+      if (overdueList.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="text-center py-8 text-slate-400">
+              <i class="fa-solid fa-circle-check text-emerald-500 text-3xl mb-2 block"></i>
+              Semua kamar terisi telah LUNAS pembayaran sewa untuk bulan ini!
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      overdueList.forEach(item => {
+        const { room, blockName, floorNumber, stat } = item;
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+
+        const badgeClass = stat.status === 'Dicicil' 
+          ? 'bg-amber-100 text-amber-800 border-amber-200' 
+          : 'bg-rose-100 text-rose-800 border-rose-200';
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-bold text-slate-800">
+            ${room.roomNumber} <span class="text-[10px] text-slate-400 block font-normal">${blockName} - Lt ${floorNumber}</span>
+          </td>
+          <td class="py-3 px-4 font-semibold text-slate-700">${room.tenantName}</td>
+          <td class="py-3 px-4">
+            ${room.tenantPhone ? `<a href="https://wa.me/${formatWA(room.tenantPhone)}" target="_blank" class="text-emerald-600 hover:underline flex items-center gap-1 font-medium"><i class="fa-brands fa-whatsapp text-sm"></i> ${room.tenantPhone}</a>` : '-'}
+          </td>
+          <td class="py-3 px-4 text-right font-semibold">${formatRupiah(stat.total)}</td>
+          <td class="py-3 px-4 text-right text-emerald-600 font-semibold">${formatRupiah(stat.paid)}</td>
+          <td class="py-3 px-4 text-right text-rose-600 font-bold">${formatRupiah(stat.remaining)}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeClass}">
+              ${stat.status}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="openPaymentModal('${room.id}')" class="px-2.5 py-1 bg-brand-600 hover:bg-brand-700 text-white rounded-md text-[11px] font-medium shadow-xs">
+              <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Bayar Sisa
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // TAB 3: FINANCIAL CHART & HISTORY RENDER
+    function renderFinancialChart() {
+      const activeMonth = document.getElementById('globalMonthPicker').value;
+      let totalPaid = 0;
+      let totalRemaining = 0;
+      let totalTarget = 0;
+
+      appData.rooms.forEach(room => {
+        if (!room.tenantName || room.tenantName.trim() === '') return;
+        const stat = getRoomMonthStatus(room.id, activeMonth);
+        totalPaid += stat.paid;
+        totalRemaining += stat.remaining;
+        totalTarget += stat.total;
+      });
+
+      document.getElementById('finTargetTotal').textContent = formatRupiah(totalTarget);
+      document.getElementById('finTotalPaid').textContent = formatRupiah(totalPaid);
+      document.getElementById('finTotalRemaining').textContent = formatRupiah(totalRemaining);
+      const paidPct = totalTarget > 0 ? Math.round((totalPaid / totalTarget) * 100) : 0;
+      document.getElementById('finPaidPercentage').textContent = `${paidPct}%`;
+
+      // Render Chart.js
+      const ctx = document.getElementById('financeChart').getContext('2d');
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Sudah Terbayar (Lunas/Cicil)', 'Belum Dibayar (Tunggakan)'],
+          datasets: [{
+            data: [totalPaid, totalRemaining],
+            backgroundColor: ['#10b981', '#f43f5e'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                font: { family: 'Inter', size: 12 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderPaymentHistory() {
+      const tbody = document.getElementById('paymentHistoryBody');
+      tbody.innerHTML = '';
+
+      const activeMonth = document.getElementById('globalMonthPicker').value;
+      const history = appData.payments.filter(p => p.monthPeriod === activeMonth);
+
+      if (history.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-6 text-slate-400">Belum ada riwayat transaksi pembayaran pada bulan ini.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      // Sort recent first
+      history.sort((a, b) => new Date(b.payDate) - new Date(a.payDate));
+
+      history.forEach(p => {
+        const room = appData.rooms.find(r => r.id === p.roomId);
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50";
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 text-slate-600">${p.payDate || '-'}</td>
+          <td class="py-2.5 px-3 font-semibold text-slate-800">
+            ${room ? room.roomNumber : 'Kamar Hapus'} - ${room ? (room.tenantName || 'Penghuni') : ''}
+          </td>
+          <td class="py-2.5 px-3 text-slate-500">${p.monthPeriod}</td>
+          <td class="py-2.5 px-3 text-right font-bold text-emerald-600">${formatRupiah(p.paidAmount)}</td>
+          <td class="py-2.5 px-3 text-right text-rose-500 font-medium">${formatRupiah(p.remainingAmount)}</td>
+          <td class="py-2.5 px-3 text-slate-500 italic">${p.notes || '-'}</td>
+          <td class="py-2.5 px-3 text-center">
+            <button onclick="deletePayment('${p.id}')" class="text-rose-500 hover:text-rose-700 p-1" title="Hapus Pembayaran">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // TAB 4: STRUCTURE MANAGER RENDER & ACTIONS
+    function renderStructureList() {
+      const container = document.getElementById('structureListContainer');
+      container.innerHTML = '';
+
+      appData.blocks.forEach(block => {
+        const floors = appData.floors.filter(f => f.blockId === block.id);
+        
+        const blockBox = document.createElement('div');
+        blockBox.className = "border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2";
+
+        let floorsHTML = floors.map(flr => {
+          const roomCount = appData.rooms.filter(r => r.floorId === flr.id).length;
+          return `
+            <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-slate-200">
+              <div>
+                <span class="font-bold text-slate-800">Lantai ${flr.floorNumber}</span>
+                <span class="text-slate-500 text-[11px] ml-2">(${roomCount} kamar) • Awalan: ${flr.prefix || '-'}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-brand-600">${formatRupiah(flr.defaultPrice)}/bln</span>
+                <button onclick="deleteFloorStructure('${flr.id}')" class="text-rose-500 hover:bg-rose-50 p-1.5 rounded-md" title="Hapus Lantai Ini">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        if (floors.length === 0) {
+          floorsHTML = `<p class="text-slate-400 italic text-[11px] py-1">Belum ada lantai di blok ini.</p>`;
+        }
+
+        blockBox.innerHTML = `
+          <div class="flex items-center justify-between pb-1 border-b border-slate-200">
+            <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-building text-brand-600"></i> ${block.name}
+            </h4>
+            <button onclick="deleteBlockStructure('${block.id}')" class="text-rose-600 hover:underline text-[11px] font-medium">
+              Hapus Blok
+            </button>
+          </div>
+          <div class="space-y-1.5">
+            ${floorsHTML}
+          </div>
+        `;
+
+        container.appendChild(blockBox);
+      });
+    }
+
+    // DYNAMIC ADD / EDIT STRUCTURE (BLOK & LANTAI)
+    function handleSaveStructure(event) {
+      event.preventDefault();
+      const blockName = document.getElementById('structBlockInput').value.trim();
+      const floorNum = parseInt(document.getElementById('structFloorInput').value);
+      const roomCount = parseInt(document.getElementById('structRoomCountInput').value);
+      const defaultPrice = parseFloat(document.getElementById('structDefaultPriceInput').value);
+      const prefixInput = document.getElementById('structPrefixInput').value.trim();
+
+      if (!blockName || isNaN(floorNum) || isNaN(roomCount) || roomCount <= 0) {
+        showToast("Mohon isi nama blok, nomor lantai, dan jumlah kamar dengan benar!", "error");
+        return;
+      }
+
+      // Find or create Block
+      let block = appData.blocks.find(b => b.name.toLowerCase() === blockName.toLowerCase());
+      if (!block) {
+        block = {
+          id: 'blk-' + Date.now(),
+          name: blockName
+        };
+        appData.blocks.push(block);
+      }
+
+      // Check if Floor already exists in Block
+      let floor = appData.floors.find(f => f.blockId === block.id && f.floorNumber === floorNum);
+      const prefix = prefixInput || `${block.name.replace(/\s+/g, '')}${floorNum}`;
+
+      if (!floor) {
+        floor = {
+          id: 'flr-' + Date.now(),
+          blockId: block.id,
+          floorNumber: floorNum,
+          roomCount: roomCount,
+          prefix: prefix,
+          defaultPrice: defaultPrice
+        };
+        appData.floors.push(floor);
+      } else {
+        // Update floor meta
+        floor.roomCount = roomCount;
+        floor.prefix = prefix;
+        floor.defaultPrice = defaultPrice;
+      }
+
+      // Generate or adjust rooms
+      const existingRooms = appData.rooms.filter(r => r.floorId === floor.id);
+      if (existingRooms.length < roomCount) {
+        // Add new rooms
+        for (let i = existingRooms.length + 1; i <= roomCount; i++) {
+          const roomNo = `${prefix}-${i < 10 ? '0' + i : i}`;
+          appData.rooms.push({
+            id: `room-${floor.id}-${Date.now()}-${i}`,
+            floorId: floor.id,
+            blockId: block.id,
+            roomNumber: roomNo,
+            tenantName: '',
+            tenantPhone: '',
+            startDate: '',
+            rentPrice: defaultPrice
+          });
+        }
+      }
+
+      saveDataToStorage();
+      renderAll();
+      showToast(`Struktur ${blockName} Lantai ${floorNum} dengan ${roomCount} kamar berhasil disimpan!`, "success");
+      document.getElementById('structureForm').reset();
+      document.getElementById('structRoomCountInput').value = 10;
+      document.getElementById('structDefaultPriceInput').value = 1000000;
+    }
+
+    function deleteFloorStructure(floorId) {
+      if (confirm("Apakah Anda yakin ingin menghapus lantai ini beserta kamar-kamarnya?")) {
+        appData.floors = appData.floors.filter(f => f.id !== floorId);
+        appData.rooms = appData.rooms.filter(r => r.floorId !== floorId);
+        saveDataToStorage();
+        renderAll();
+        showToast("Lantai dan kamar terkait berhasil dihapus.", "success");
+      }
+    }
+
+    function deleteBlockStructure(blockId) {
+      if (confirm("Apakah Anda yakin ingin menghapus seluruh Blok ini beserta semua lantai dan kamarnya?")) {
+        appData.blocks = appData.blocks.filter(b => b.id !== blockId);
+        appData.floors = appData.floors.filter(f => f.blockId !== blockId);
+        appData.rooms = appData.rooms.filter(r => r.blockId !== blockId);
+        saveDataToStorage();
+        renderAll();
+        showToast("Blok berhasil dihapus.", "success");
+      }
+    }
+
+    // MODAL & ACTION HANDLERS: ROOM DETAILS & EDIT PENGHUNI
+    function openRoomDetailModal(roomId) {
+      const room = appData.rooms.find(r => r.id === roomId);
+      if (!room) return;
+
+      const block = appData.blocks.find(b => b.id === room.blockId);
+      const floor = appData.floors.find(f => f.id === room.floorId);
+
+      document.getElementById('editRoomId').value = room.id;
+      document.getElementById('roomDetailTitle').textContent = `Detail Kamar ${room.roomNumber}`;
+      document.getElementById('roomDetailSubtitle').textContent = `${block ? block.name : ''} - Lantai ${floor ? floor.floorNumber : ''}`;
+
+      document.getElementById('editRoomNumber').value = room.roomNumber;
+      document.getElementById('editRoomPrice').value = room.rentPrice;
+      document.getElementById('editTenantName').value = room.tenantName || '';
+      document.getElementById('editTenantPhone').value = room.tenantPhone || '';
+      document.getElementById('editTenantStartDate').value = room.startDate || '';
+
+      // Render modal room payment history
+      const historyList = document.getElementById('roomModalHistoryList');
+      const roomPayments = appData.payments.filter(p => p.roomId === room.id);
+      
+      if (roomPayments.length === 0) {
+        historyList.innerHTML = `<p class="text-slate-400 italic">Belum ada riwayat pembayaran.</p>`;
+      } else {
+        historyList.innerHTML = roomPayments.map(p => `
+          <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+            <div>
+              <span class="font-bold text-slate-800">${p.monthPeriod}</span>
+              <span class="text-[10px] text-slate-400 block">${p.payDate || ''} - ${p.notes || ''}</span>
+            </div>
+            <div class="text-right">
+              <span class="font-bold text-emerald-600 block">${formatRupiah(p.paidAmount)}</span>
+              ${p.remainingAmount > 0 ? `<span class="text-[10px] text-rose-500 font-semibold">Sisa ${formatRupiah(p.remainingAmount)}</span>` : '<span class="text-[10px] text-emerald-600">Lunas</span>'}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      openModal('roomDetailModal');
+    }
+
+    function handleSaveRoomDetails(event) {
+      event.preventDefault();
+      const roomId = document.getElementById('editRoomId').value;
+      const room = appData.rooms.find(r => r.id === roomId);
+      if (!room) return;
+
+      room.roomNumber = document.getElementById('editRoomNumber').value.trim();
+      room.rentPrice = parseFloat(document.getElementById('editRoomPrice').value) || 0;
+      room.tenantName = document.getElementById('editTenantName').value.trim();
+      room.tenantPhone = document.getElementById('editTenantPhone').value.trim();
+      room.startDate = document.getElementById('editTenantStartDate').value;
+
+      saveDataToStorage();
+      renderAll();
+      closeModal('roomDetailModal');
+      showToast("Data kamar & penghuni berhasil diperbarui!", "success");
+    }
+
+    // MODAL & ACTION HANDLERS: PARTIAL PAYMENT (BAYAR BERAPA & KURANG BERAPA)
+    function openPaymentModal(roomId) {
+      const room = appData.rooms.find(r => r.id === roomId);
+      if (!room) return;
+
+      const activeMonth = document.getElementById('globalMonthPicker').value;
+      const existingPay = appData.payments.find(p => p.roomId === roomId && p.monthPeriod === activeMonth);
+
+      document.getElementById('payRoomId').value = room.id;
+      document.getElementById('payModalTitle').textContent = `Catat Pembayaran - ${room.roomNumber}`;
+      document.getElementById('payModalSubtitle').textContent = `Penghuni: ${room.tenantName || 'Belum diisi'}`;
+      document.getElementById('payMonthPeriod').value = activeMonth;
+      document.getElementById('payRoomPriceDisplay').textContent = formatRupiah(room.rentPrice);
+      document.getElementById('payDateInput').value = new Date().toISOString().slice(0, 10);
+
+      if (existingPay) {
+        document.getElementById('payAmountInput').value = existingPay.paidAmount;
+        document.getElementById('payNoteInput').value = existingPay.notes || '';
+      } else {
+        document.getElementById('payAmountInput').value = room.rentPrice; // Default full
+        document.getElementById('payNoteInput').value = '';
+      }
+
+      calculateRemainingPayment();
+      openModal('paymentModal');
+    }
+
+    function calculateRemainingPayment() {
+      const roomId = document.getElementById('payRoomId').value;
+      const room = appData.rooms.find(r => r.id === roomId);
+      const totalBill = room ? room.rentPrice : 0;
+
+      const paidAmount = parseFloat(document.getElementById('payAmountInput').value) || 0;
+      const remaining = Math.max(0, totalBill - paidAmount);
+
+      document.getElementById('calcTotalBill').textContent = formatRupiah(totalBill);
+      document.getElementById('calcPaidAmount').textContent = formatRupiah(paidAmount);
+      document.getElementById('calcRemainingAmount').textContent = formatRupiah(remaining);
+
+      const label = document.getElementById('calcStatusLabel');
+      if (paidAmount >= totalBill) {
+        label.textContent = "Status Pembayaran: LUNAS";
+        label.className = "text-emerald-600 font-bold";
+        document.getElementById('calcRemainingAmount').textContent = "Rp 0 (Lunas)";
+        document.getElementById('calcRemainingAmount').className = "text-emerald-600 font-bold";
+      } else if (paidAmount > 0) {
+        label.textContent = "Status: DICICIL (Sisa Kurang):";
+        label.className = "text-amber-600 font-bold";
+        document.getElementById('calcRemainingAmount').className = "text-amber-600 font-bold text-sm";
+      } else {
+        label.textContent = "Status: MENUNGGAK (Sisa Kurang):";
+        label.className = "text-rose-600 font-bold";
+        document.getElementById('calcRemainingAmount').className = "text-rose-600 font-bold text-sm";
+      }
+    }
+
+    function handleSavePayment(event) {
+      event.preventDefault();
+      const roomId = document.getElementById('payRoomId').value;
+      const room = appData.rooms.find(r => r.id === roomId);
+      if (!room) return;
+
+      const monthPeriod = document.getElementById('payMonthPeriod').value;
+      const paidAmount = parseFloat(document.getElementById('payAmountInput').value) || 0;
+      const payDate = document.getElementById('payDateInput').value;
+      const notes = document.getElementById('payNoteInput').value.trim();
+
+      const totalBill = room.rentPrice;
+      const remainingAmount = Math.max(0, totalBill - paidAmount);
+      
+      let status = 'Menunggak';
+      if (paidAmount >= totalBill) {
+        status = 'Lunas';
+      } else if (paidAmount > 0) {
+        status = 'Dicicil';
+      }
+
+      // Check existing payment object for this month
+      let payObj = appData.payments.find(p => p.roomId === roomId && p.monthPeriod === monthPeriod);
+      if (payObj) {
+        payObj.totalBill = totalBill;
+        payObj.paidAmount = paidAmount;
+        payObj.remainingAmount = remainingAmount;
+        payObj.status = status;
+        payObj.payDate = payDate;
+        payObj.notes = notes;
+      } else {
+        payObj = {
+          id: 'pay-' + Date.now(),
+          roomId: roomId,
+          monthPeriod: monthPeriod,
+          totalBill: totalBill,
+          paidAmount: paidAmount,
+          remainingAmount: remainingAmount,
+          status: status,
+          payDate: payDate,
+          notes: notes
+        };
+        appData.payments.push(payObj);
+      }
+
+      saveDataToStorage();
+      renderAll();
+      closeModal('paymentModal');
+      showToast(`Pembayaran kamar ${room.roomNumber} (${status}) berhasil disimpan!`, "success");
+
+      // Auto-trigger optional telegram sync if token exists
+      if (appData.settings && appData.settings.telegramToken && appData.settings.telegramChatId) {
+        sendTelegramNotification(`✅ *Pembayaran Dicatat*\nKamar: ${room.roomNumber}\nPenghuni: ${room.tenantName}\nNominal Bayar: ${formatRupiah(paidAmount)}\nSisa Kurang: ${formatRupiah(remainingAmount)}\nStatus: *${status}*`);
+      }
+    }
+
+    function deletePayment(payId) {
+      if (confirm("Hapus catatan pembayaran ini?")) {
+        appData.payments = appData.payments.filter(p => p.id !== payId);
+        saveDataToStorage();
+        renderAll();
+        showToast("Catatan pembayaran berhasil dihapus.", "success");
+      }
+    }
+
+    // TELEGRAM INTEGRATION & BACKUP
+    function sendTelegramNotification(textMessage) {
+      const token = appData.settings ? appData.settings.telegramToken : '';
+      const chatId = appData.settings ? appData.settings.telegramChatId : '';
+
+      if (!token || !chatId) return;
+
+      const url = `https://api.telegram.org/bot${token}/sendMessage`;
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: textMessage,
+          parse_mode: 'Markdown'
+        })
+      }).catch(err => console.error("Telegram API Error:", err));
+    }
+
+    function testTelegramConnection() {
+      const token = document.getElementById('cfgTelegramToken').value.trim();
+      const chatId = document.getElementById('cfgTelegramChatId').value.trim();
+
+      if (!token || !chatId) {
+        showToast("Mohon isi Bot Token dan Chat ID Telegram terlebih dahulu!", "error");
+        return;
+      }
+
+      const url = `https://api.telegram.org/bot${token}/sendMessage`;
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `🤖 *Tes Koneksi Aplikasi KosKu Manager*\nBerhasil terhubung dengan Telegram!`,
+          parse_mode: 'Markdown'
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) {
+          showToast("Pesan tes Telegram BERHASIL terkirim!", "success");
+        } else {
+          showToast(`Gagal: ${data.description}`, "error");
+        }
+      })
+      .catch(err => {
+        showToast("Gagal terhubung ke Telegram API.", "error");
+      });
+    }
+
+    function sendTelegramSummaryReport() {
+      const token = appData.settings ? appData.settings.telegramToken : '';
+      const chatId = appData.settings ? appData.settings.telegramChatId : '';
+
+      if (!token || !chatId) {
+        showToast("Pengaturan Telegram belum diisi! Silakan isi di menu Pengaturan (ikon roda gigi).", "error");
+        openSettingsModal();
+        return;
+      }
+
+      const activeMonth = document.getElementById('globalMonthPicker').value;
+      let totalPaid = 0;
+      let totalRemaining = 0;
+      let pendingRooms = [];
+
+      appData.rooms.forEach(room => {
+        if (!room.tenantName || room.tenantName.trim() === '') return;
+        const stat = getRoomMonthStatus(room.id, activeMonth);
+        totalPaid += stat.paid;
+        totalRemaining += stat.remaining;
+
+        if (stat.status === 'Menunggak' || stat.status === 'Dicicil') {
+          pendingRooms.push(`• *${room.roomNumber}* (${room.tenantName}): Kurang *${formatRupiah(stat.remaining)}* (${stat.status})`);
+        }
+      });
+
+      let msg = `📊 *LAPORAN KEUANGAN KOS - PERIODE ${activeMonth}*\n\n`;
+      msg += `💰 Total Terbayar: *${formatRupiah(totalPaid)}*\n`;
+      msg += `⚠️ Total Tunggakan: *${formatRupiah(totalRemaining)}*\n\n`;
+      
+      if (pendingRooms.length > 0) {
+        msg += `📋 *Daftar Kamar Belum Lunas (${pendingRooms.length} Kamar):*\n`;
+        msg += pendingRooms.join('\n');
+      } else {
+        msg += `✅ *Semua Kamar LUNAS!*`;
+      }
+
+      sendTelegramNotification(msg);
+      showToast("Laporan Keuangan berhasil dikirim ke Telegram!", "success");
+    }
+
+    function sendOverdueReportTelegram() {
+      sendTelegramSummaryReport();
+    }
+
+    // SUPABASE CLOUD SYNC INTEGRATION
+    function syncSupabaseData(direction) {
+      const url = document.getElementById('cfgSupabaseUrl').value.trim();
+      const key = document.getElementById('cfgSupabaseKey').value.trim();
+
+      if (!url || !key) {
+        showToast("Isi URL dan Anon Key Supabase terlebih dahulu!", "error");
+        return;
+      }
+
+      try {
+        const supabaseClient = supabase.createClient(url, key);
+
+        if (direction === 'PUSH') {
+          // Upload local state to Supabase table 'kos_data'
+          supabaseClient
+            .from('kos_data')
+            .upsert({ id: 'primary_state', payload: appData, updated_at: new Date() })
+            .then(({ data, error }) => {
+              if (error) {
+                showToast(`Gagal Upload: ${error.message}. Pastikan tabel 'kos_data' sudah dibuat di Supabase.`, "error");
+              } else {
+                showToast("Data BERHASIL di-upload ke Cloud Supabase!", "success");
+              }
+            });
+        } else if (direction === 'PULL') {
+          // Download state from Supabase table 'kos_data'
+          supabaseClient
+            .from('kos_data')
+            .select('payload')
+            .eq('id', 'primary_state')
+            .single()
+            .then(({ data, error }) => {
+              if (error || !data) {
+                showToast(`Gagal Download: ${error ? error.message : 'Data tidak ditemukan'}`, "error");
+              } else {
+                appData = data.payload;
+                saveDataToStorage();
+                renderAll();
+                showToast("Data BERHASIL di-download dari Cloud Supabase!", "success");
+              }
+            });
+        }
+      } catch (e) {
+        showToast("Terjadi kesalahan koneksi Supabase.", "error");
+      }
+    }
+
+    function updateCloudStatusBadge() {
+      const badge = document.getElementById('cloudStatusBadge');
+      if (appData && appData.settings && appData.settings.supabaseUrl) {
+        badge.innerHTML = `<i class="fa-solid fa-cloud text-emerald-400 mr-1"></i>Cloud Sync Ready`;
+        badge.className = "text-[10px] font-normal px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-800";
+      } else if (appData && appData.settings && appData.settings.telegramToken) {
+        badge.innerHTML = `<i class="fa-brands fa-telegram text-sky-400 mr-1"></i>Telegram Backup`;
+        badge.className = "text-[10px] font-normal px-2 py-0.5 rounded-full bg-sky-950/80 text-sky-300 border border-sky-800";
+      } else {
+        badge.innerHTML = `<i class="fa-solid fa-hard-drive text-amber-400 mr-1"></i>Penyimpanan Lokal`;
+        badge.className = "text-[10px] font-normal px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700";
+      }
+    }
+
+    // SAVE SETTINGS MODAL FORM
+    function saveSettingsForm() {
+      if (!appData.settings) appData.settings = {};
+
+      appData.settings.telegramToken = document.getElementById('cfgTelegramToken').value.trim();
+      appData.settings.telegramChatId = document.getElementById('cfgTelegramChatId').value.trim();
+      appData.settings.supabaseUrl = document.getElementById('cfgSupabaseUrl').value.trim();
+      appData.settings.supabaseKey = document.getElementById('cfgSupabaseKey').value.trim();
+
+      saveDataToStorage();
+      closeModal('settingsModal');
+      showToast("Pengaturan integrasi berhasil disimpan!", "success");
+    }
+
+    // EXPORT & IMPORT DATA JSON
+    function exportDataJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `Backup_Kosku_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("File backup JSON berhasil di-download!", "success");
+    }
+
+    function importDataJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported && imported.rooms && imported.blocks) {
+            appData = imported;
+            saveDataToStorage();
+            renderAll();
+            showToast("Data JSON berhasil di-import!", "success");
+          } else {
+            showToast("Format file JSON tidak valid!", "error");
+          }
+        } catch (err) {
+          showToast("Gagal membaca file JSON.", "error");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // UI TABS SWITCHING
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(tabId).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-brand-600', 'text-brand-600');
+        btn.classList.add('border-transparent', 'text-slate-500');
+      });
+
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) {
+        activeNav.classList.remove('border-transparent', 'text-slate-500');
+        activeNav.classList.add('border-brand-600', 'text-brand-600');
+      }
+    }
+
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function openSettingsModal() {
+      openModal('settingsModal');
+    }
+
+    // HELPER UTILITIES
+    function formatRupiah(num) {
+      if (isNaN(num) || num === null) return 'Rp 0';
+      return 'Rp ' + Math.round(num).toLocaleString('id-ID');
+    }
+
+    function formatWA(phone) {
+      let cleaned = phone.replace(/\D/g, '');
+      if (cleaned.startsWith('0')) {
+        cleaned = '62' + cleaned.slice(1);
+      }
+      return cleaned;
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+
+      let bgClass = "bg-slate-900 text-white";
+      let icon = '<i class="fa-solid fa-circle-info text-sky-400"></i>';
+
+      if (type === 'success') {
+        bgClass = "bg-emerald-900 text-white border border-emerald-700";
+        icon = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+      } else if (type === 'error') {
+        bgClass = "bg-rose-900 text-white border border-rose-700";
+        icon = '<i class="fa-solid fa-triangle-exclamation text-rose-400"></i>';
+      }
+
+      toast.className = `${bgClass} p-3 rounded-xl shadow-xl text-xs flex items-center space-x-2.5 transition-all transform duration-300 translate-y-2 opacity-0`;
+      toast.innerHTML = `${icon} <span>${message}</span>`;
+
+      container.appendChild(toast);
+
+      // Trigger animation
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      // Auto remove after 3.5s
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
