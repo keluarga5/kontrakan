@@ -446,6 +446,14 @@
         </div>
 
         <div>
+          <label class="text-[11px] font-bold text-slate-600 uppercase">Warna Label Tipe Kamar</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="color" id="typeColorInput" value="#0284c7" class="h-9 w-14 p-0.5 bg-white border border-slate-300 rounded-xl cursor-pointer">
+            <span class="text-xs text-slate-500 font-medium">Pilih warna penanda label</span>
+          </div>
+        </div>
+
+        <div>
           <label class="text-[11px] font-bold text-slate-600 uppercase">Fasilitas Singkat</label>
           <input type="text" id="typeDescInput" placeholder="AC, Kasur, Kamar Mandi Dalam" class="w-full mt-1 px-3 py-2 text-xs border border-slate-300 rounded-xl">
         </div>
@@ -488,8 +496,8 @@
 
     let appData = {
       roomTypes: [
-        { id: 'rt-std', name: 'Standard', price: 800000, desc: 'Kipas Angin, Kamar Mandi Luar' },
-        { id: 'rt-dlx', name: 'Deluxe', price: 1200000, desc: 'AC, Kamar Mandi Dalam' }
+        { id: 'rt-std', name: 'Standard', price: 800000, desc: 'Kipas Angin, Kamar Mandi Luar', color: '#0284c7' },
+        { id: 'rt-dlx', name: 'Deluxe', price: 1200000, desc: 'AC, Kamar Mandi Dalam', color: '#9333ea' }
       ],
       rooms: [], // [{ id, block, floor, number, typeId, defaultPrice }]
       monthlyData: {} // { "YYYY-MM": { "room-id": { tenantName, phone, moveIn, customPrice, paidAmount, note, isVacant } } }
@@ -899,9 +907,10 @@
 
             const dueDateDay = tenantInfo.moveIn ? tenantInfo.moveIn.slice(8, 10) : '21';
             
-            // Get Room Type Name for Label
+            // Get Room Type Name and Custom Color for Label
             const typeObj = appData.roomTypes.find(t => t.id === room.typeId);
             const typeName = typeObj ? typeObj.name : 'Standard';
+            const typeColor = typeObj ? (typeObj.color || '#0284c7') : '#0284c7';
 
             const roomBox = document.createElement('div');
             roomBox.className = `p-3 rounded-xl border ${isOccupied ? (remaining === 0 ? 'bg-emerald-50/40 border-emerald-200' : 'bg-rose-50/30 border-rose-200') : 'bg-slate-50/60 border-slate-200'} space-y-1.5 transition flex flex-col justify-between`;
@@ -911,7 +920,7 @@
                 <div class="flex justify-between items-start">
                   <div class="flex items-center gap-1 max-w-[65%]">
                     <span class="font-black text-slate-800 text-xs">${room.number}</span>
-                    <span class="text-[9px] font-extrabold bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded border border-sky-200/80 truncate" title="Tipe: ${typeName}">${typeName}</span>
+                    <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded border truncate" style="background-color: ${typeColor}18; color: ${typeColor}; border-color: ${typeColor}40;" title="Tipe: ${typeName}">${typeName}</span>
                   </div>
                   ${statusBadge}
                 </div>
@@ -1055,12 +1064,16 @@
       container.innerHTML = '';
 
       appData.roomTypes.forEach(type => {
+        const typeColor = type.color || '#0284c7';
         const card = document.createElement('div');
         card.className = "bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between";
         card.innerHTML = `
           <div>
-            <span class="font-bold text-slate-800 text-sm">${type.name}</span>
-            <p class="text-xs font-bold text-sky-600">Rp ${formatNumber(type.price)} / bulan</p>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 text-sm">${type.name}</span>
+              <span class="text-[9px] font-extrabold px-2 py-0.5 rounded border" style="background-color: ${typeColor}18; color: ${typeColor}; border-color: ${typeColor}40;">${type.name}</span>
+            </div>
+            <p class="text-xs font-bold text-sky-600 mt-0.5">Rp ${formatNumber(type.price)} / bulan</p>
             <p class="text-[11px] text-slate-500 mt-0.5">${type.desc || 'Tanpa deskripsi'}</p>
           </div>
           <button onclick="openEditTypeModal('${type.id}')" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-slate-200">
@@ -1277,6 +1290,7 @@
       document.getElementById('roomTypeModalTitle').innerText = 'Tipe Kamar Baru';
       document.getElementById('typeNameInput').value = '';
       document.getElementById('typePriceInput').value = 800000;
+      document.getElementById('typeColorInput').value = '#0284c7';
       document.getElementById('typeDescInput').value = '';
       openModal('roomTypeModal');
     }
@@ -1289,6 +1303,7 @@
       document.getElementById('roomTypeModalTitle').innerText = 'Edit Tipe Kamar';
       document.getElementById('typeNameInput').value = type.name;
       document.getElementById('typePriceInput').value = type.price;
+      document.getElementById('typeColorInput').value = type.color || '#0284c7';
       document.getElementById('typeDescInput').value = type.desc || '';
       openModal('roomTypeModal');
     }
@@ -1298,17 +1313,19 @@
       const typeId = document.getElementById('editTypeId').value;
       const name = document.getElementById('typeNameInput').value.trim();
       const price = parseInt(document.getElementById('typePriceInput').value);
+      const color = document.getElementById('typeColorInput').value;
       const desc = document.getElementById('typeDescInput').value.trim();
 
       triggerDoubleConfirm('Simpan Tipe Kamar', `Simpan tipe kamar "${name}"?`, () => {
         if (typeId) {
           const type = appData.roomTypes.find(t => t.id === typeId);
-          if (type) { type.name = name; type.price = price; type.desc = desc; }
+          if (type) { type.name = name; type.price = price; type.color = color; type.desc = desc; }
         } else {
           appData.roomTypes.push({
             id: 'rt-' + Date.now(),
             name: name,
             price: price,
+            color: color,
             desc: desc
           });
         }
@@ -1491,8 +1508,8 @@
       localStorage.removeItem('kosku_manager_db');
       appData = {
         roomTypes: [
-          { id: 'rt-std', name: 'Standard', price: 800000, desc: 'Kipas Angin' },
-          { id: 'rt-dlx', name: 'Deluxe', price: 1200000, desc: 'AC' }
+          { id: 'rt-std', name: 'Standard', price: 800000, desc: 'Kipas Angin', color: '#0284c7' },
+          { id: 'rt-dlx', name: 'Deluxe', price: 1200000, desc: 'AC', color: '#9333ea' }
         ],
         rooms: [],
         monthlyData: {}
