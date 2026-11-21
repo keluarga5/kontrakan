@@ -4,11 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
-  <title>KosKu Manager - Dual Sync Telegram & Kelola Sewa Kos</title>
+  <title>KosKu Manager - Kalkulasi Akumulasi Utang Bulanan & Dual Sync</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Configure Tailwind to force Light Theme -->
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -34,9 +33,9 @@
 
   <!-- FontAwesome Icons CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Chart.js CDN for Financial Analytics -->
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- LZ-String Compression CDN for Fast Zero-CORS Telegram Text Sync -->
+  <!-- LZ-String Compression CDN for Fast Telegram Text Sync -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
   <!-- Google Fonts Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -59,7 +58,7 @@
     .modal-base {
       z-index: 9000;
     }
-    /* Floating Confirmation Modal - Mengatasi Masalah Tertimpa Modal Lain */
+    /* Floating Confirmation Modal - Highest Z-Index */
     .modal-top {
       z-index: 99999 !important;
     }
@@ -74,7 +73,7 @@
 </head>
 <body class="bg-slate-100 text-slate-900 antialiased pb-24 min-h-screen">
 
-  <!-- TOP HEADER NAVBAR (LIGHT MODE ENFORCED) -->
+  <!-- TOP HEADER NAVBAR -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-3">
@@ -85,18 +84,18 @@
           <h1 class="font-bold text-slate-900 text-base md:text-lg leading-tight flex items-center gap-2">
             KosKu Manager
             <span id="telegramStatusBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center gap-1">
-              <i class="fa-brands fa-telegram text-sky-600"></i> Dual Sync Active
+              <i class="fa-brands fa-telegram text-sky-600"></i> Dual Sync
             </span>
           </h1>
-          <p class="text-xs text-slate-500 hidden sm:block">Aplikasi Kelola Sewa & Dual Auto-Sync Telegram (Teks + .JSON)</p>
+          <p class="text-xs text-slate-500 hidden sm:block">Kelola Sewa Kos & Akumulasi Utang Rinci Per Bulan</p>
         </div>
       </div>
 
-      <!-- Quick Actions Header -->
+      <!-- Quick Actions Header & Month Picker -->
       <div class="flex items-center space-x-2">
-        <div class="flex items-center gap-1 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-300">
-          <i class="fa-solid fa-calendar-days text-slate-500 text-xs"></i>
-          <input type="month" id="globalMonthPicker" class="bg-transparent text-slate-800 text-xs font-semibold focus:outline-none">
+        <div class="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-300 shadow-xs">
+          <i class="fa-solid fa-calendar-days text-brand-600 text-xs"></i>
+          <input type="month" id="globalMonthPicker" class="bg-transparent text-slate-800 text-xs font-bold focus:outline-none cursor-pointer">
         </div>
         
         <button onclick="restoreDirectFromTelegramChannel()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95" title="Ambil Data Terakhir dari Saluran Telegram">
@@ -148,12 +147,12 @@
         </div>
       </div>
 
-      <!-- Card 4: Sisa Tunggakan -->
+      <!-- Card 4: Sisa Tunggakan Akumulasi -->
       <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
         <div>
-          <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Sisa Tunggakan</p>
+          <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Akumulasi Utang</p>
           <h3 id="statTotalRemaining" class="text-lg md:text-xl font-bold text-rose-600 mt-0.5">Rp 0</h3>
-          <p class="text-[10px] text-rose-700 font-medium mt-0.5">Kurang Bayar</p>
+          <p class="text-[10px] text-rose-700 font-medium mt-0.5">Penjumlahan Per Bulan</p>
         </div>
         <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg border border-rose-100">
           <i class="fa-solid fa-hand-holding-dollar"></i>
@@ -191,14 +190,14 @@
       </div>
     </div>
 
-    <!-- TAB 2: KAMAR MENUNGGAK & REKAP -->
+    <!-- TAB 2: KAMAR MENUNGGAK & REKAP RINCI PER BULAN -->
     <div id="tabContentMenunggak" class="tab-page hidden space-y-4">
       <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center justify-between text-amber-900">
         <div class="flex items-center space-x-3">
           <i class="fa-solid fa-triangle-exclamation text-2xl text-amber-600"></i>
           <div>
-            <h3 class="font-bold text-sm">Daftar Kamar Menunggak & Cicilan Belum Lunas</h3>
-            <p class="text-xs text-amber-700">Hubungi penghuni via WhatsApp atau catat cicilan pembayaran di bawah ini.</p>
+            <h3 class="font-bold text-sm">Daftar Kamar Menunggak & Akumulasi Utang Per Bulan</h3>
+            <p class="text-xs text-amber-700">Rincian utang dihitung kumulatif: (Bulan 1 + Bulan 2 + ... + Bulan Aktif).</p>
           </div>
         </div>
       </div>
@@ -216,11 +215,11 @@
         <!-- Overdue List -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs md:col-span-2">
           <h4 class="font-bold text-slate-800 text-sm mb-3 flex items-center justify-between">
-            <span>Daftar Menunggak</span>
+            <span>Daftar Menunggak & Rincian Kumulatif</span>
             <span id="overdueCountBadge" class="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-rose-200">0 Kamar</span>
           </h4>
 
-          <div id="overdueListContainer" class="space-y-2 max-h-[450px] overflow-y-auto pr-1">
+          <div id="overdueListContainer" class="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
             <!-- Rendered dynamically -->
           </div>
         </div>
@@ -359,7 +358,7 @@
     </div>
   </nav>
 
-  <!-- MODAL 1: FORM CATAT PEMBAYARAN (PARSIAL / LUNAS) -->
+  <!-- MODAL 1: FORM CATAT PEMBAYARAN -->
   <div id="paymentModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 modal-base">
     <div class="bg-white w-full max-w-md rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
       <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
@@ -376,10 +375,10 @@
           <p class="text-slate-500 font-medium">Informasi Kamar & Tagihan:</p>
           <div class="flex justify-between font-bold text-slate-800 text-sm">
             <span id="payRoomLabel">Kamar A1</span>
-            <span id="payTenantLabel" class="text-brand-600">John Doe</span>
+            <span id="payTenantLabel" class="text-brand-600">Nama Penghuni</span>
           </div>
           <div class="flex justify-between text-slate-600 pt-1 border-t border-slate-200">
-            <span>Harga Bulanan:</span>
+            <span>Tarif Bulanan Saat Ini:</span>
             <span id="payMonthlyPriceLabel" class="font-semibold text-slate-900">Rp 0</span>
           </div>
         </div>
@@ -391,7 +390,7 @@
 
         <div id="remainingCalculationBox" class="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1">
           <div class="flex justify-between text-amber-900 font-bold">
-            <span>Sisa Kurang Bayar:</span>
+            <span>Sisa Kurang Bayar Bulan Ini:</span>
             <span id="payRemainingLabel" class="text-rose-600 text-sm">Rp 0</span>
           </div>
           <div class="flex justify-between text-[11px] text-amber-800">
@@ -427,7 +426,7 @@
     </div>
   </div>
 
-  <!-- MODAL 2: EDIT KAMAR & ISIPENGHUNI -->
+  <!-- MODAL 2: EDIT KAMAR & ISIPENGHUNI PER BULAN -->
   <div id="tenantModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 modal-base">
     <div class="bg-white w-full max-w-md rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
       <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
@@ -439,6 +438,13 @@
 
       <form id="tenantForm" onsubmit="handleTenantSubmit(event)" class="p-4 space-y-3 text-xs overflow-y-auto">
         <input type="hidden" id="editRoomId">
+
+        <div class="bg-brand-50 border border-brand-200 p-2.5 rounded-xl flex items-center justify-between text-brand-900">
+          <span class="font-semibold text-xs flex items-center gap-1.5">
+            <i class="fa-solid fa-calendar-check text-brand-600"></i> Bulan Berlaku Pengeditan:
+          </span>
+          <span id="editModalMonthLabel" class="font-extrabold text-xs bg-white px-2 py-0.5 rounded border border-brand-300 text-brand-700">2026-02</span>
+        </div>
 
         <div class="grid grid-cols-2 gap-2">
           <div>
@@ -482,7 +488,7 @@
         </div>
 
         <div class="pt-2 flex justify-between items-center border-t border-slate-100">
-          <button type="button" onclick="requestDoubleConfirmation('Kosongkan Kamar', 'Penghuni akan dikeluarkan dari kamar ini.', clearTenantFromRoom)" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-semibold">
+          <button type="button" onclick="requestDoubleConfirmation('Kosongkan Kamar Bulan Ini', 'Penghuni akan dikeluarkan untuk bulan terpilih saja.', clearTenantFromRoom)" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-semibold">
             Kosongkan Kamar
           </button>
           <div class="flex gap-2">
@@ -541,7 +547,7 @@
 
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">Nama Blok (Bisa Ketik Bebas)</label>
+            <label class="block font-semibold text-slate-700 mb-1">Nama Blok (Ketik Bebas)</label>
             <input type="text" id="floorBlockInput" list="blockDatalist" required placeholder="Contoh: Blok A, Blok B, Paviliun" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-brand-500">
             <datalist id="blockDatalist">
               <!-- Rendered dynamically -->
@@ -617,7 +623,7 @@
 
   <!-- MAIN JAVASCRIPT LOGIC -->
   <script>
-    // GLOBAL DEFAULT DATA STRUCTURE
+    // CLEAN INITIAL DATA STRUCTURE (ZERO MOCK DATA)
     const DEFAULT_DATA = {
       settings: {
         telegramToken: '7494826619:AAEf2jAPZsEnMVmc2kAxSAJVbIcAUX-IbBw',
@@ -628,16 +634,8 @@
         { id: 'rt-dlx', name: 'Deluxe', price: 1200000, description: 'AC, Kamar Mandi Dalam' },
         { id: 'rt-vip', name: 'VIP', price: 1800000, description: 'AC, TV, Kamar Mandi Dalam, Springbed' }
       ],
-      blocks: [
-        { id: 'blk-a', name: 'Blok A' },
-        { id: 'blk-b', name: 'Blok B' }
-      ],
-      floors: [
-        { id: 'flr-a1', blockId: 'blk-a', floorNumber: 1, roomCount: 10, prefix: 'A1', defaultTypeId: 'rt-std' },
-        { id: 'flr-b1', blockId: 'blk-b', floorNumber: 1, roomCount: 15, prefix: 'B1', defaultTypeId: 'rt-std' },
-        { id: 'flr-a2', blockId: 'blk-a', floorNumber: 2, roomCount: 7, prefix: 'A2', defaultTypeId: 'rt-dlx' },
-        { id: 'flr-b2', blockId: 'blk-b', floorNumber: 2, roomCount: 10, prefix: 'B2', defaultTypeId: 'rt-dlx' }
-      ],
+      blocks: [],
+      floors: [],
       rooms: [],
       payments: []
     };
@@ -652,7 +650,6 @@
     };
 
     function initApp() {
-      // Set current month picker
       const now = new Date();
       const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const picker = document.getElementById('globalMonthPicker');
@@ -682,37 +679,10 @@
           console.error("Gagal membaca LocalStorage", e);
         }
       }
-      if (!appData || !appData.rooms || !appData.roomTypes || appData.roomTypes.length === 0) {
+      if (!appData) {
         appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
-        generateSampleRoomsIfEmpty();
         saveDataToStorage(false);
       }
-    }
-
-    function generateSampleRoomsIfEmpty() {
-      if (appData.rooms.length > 0) return;
-      appData.rooms = [];
-
-      appData.floors.forEach(floor => {
-        const type = appData.roomTypes.find(t => t.id === floor.defaultTypeId) || appData.roomTypes[0];
-        for (let i = 1; i <= floor.roomCount; i++) {
-          const roomNum = `${floor.prefix}-${String(i).padStart(2, '0')}`;
-          const isSampleOccupied = (i % 2 === 0);
-          
-          appData.rooms.push({
-            id: `rm-${floor.id}-${i}`,
-            floorId: floor.id,
-            blockId: floor.blockId,
-            number: roomNum,
-            typeId: type ? type.id : 'rt-std',
-            customPrice: type ? type.price : 800000,
-            tenantName: isSampleOccupied ? `Penghuni ${roomNum}` : '',
-            tenantPhone: isSampleOccupied ? '081234567890' : '',
-            entryDate: isSampleOccupied ? '2024-01-01' : '',
-            dueDateDay: isSampleOccupied ? 5 : 5
-          });
-        }
-      });
     }
 
     function saveDataToStorage(triggerTelegram = true) {
@@ -723,9 +693,142 @@
     }
 
     /**
-     * UTILITY FUNCTION: SISTER SORTING FOR BLOCKS, FLOORS & ROOMS
-     * 1. Blok A -> Blok B -> Blok C (Alfabetis)
-     * 2. Lantai 1 -> Lantai 2 -> Lantai 3 (Numerik)
+     * HISTORICAL RESIDENT TRACKING HELPER:
+     * Retain distinct tenant state per month.
+     */
+    function getRoomStateForMonth(room, monthStr) {
+      if (!room) return null;
+      if (!room.tenantsHistory) room.tenantsHistory = {};
+
+      if (room.tenantsHistory[monthStr]) {
+        return room.tenantsHistory[monthStr];
+      }
+
+      const pastMonths = Object.keys(room.tenantsHistory)
+        .filter(m => m <= monthStr)
+        .sort();
+
+      if (pastMonths.length > 0) {
+        const latestPastMonth = pastMonths[pastMonths.length - 1];
+        return room.tenantsHistory[latestPastMonth];
+      }
+
+      const type = appData.roomTypes.find(t => t.id === room.typeId);
+      const defaultPrice = type ? type.price : (room.customPrice || 800000);
+
+      return {
+        tenantName: room.tenantName || '',
+        tenantPhone: room.tenantPhone || '',
+        entryDate: room.entryDate || '',
+        dueDateDay: room.dueDateDay || 5,
+        customPrice: room.customPrice || defaultPrice,
+        typeId: room.typeId || (type ? type.id : 'rt-std')
+      };
+    }
+
+    function formatMonthLabel(monthStr) {
+      if (!monthStr) return '';
+      const [year, month] = monthStr.split('-').map(Number);
+      const date = new Date(year, month - 1, 1);
+      return date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+    }
+
+    /**
+     * MONTH-BY-MONTH CUMULATIVE ARREARS CALCULATOR (Total Utang Per Bulan)
+     * Sums up remaining debt month-by-month chronologically: (Bulan 1 + Bulan 2 + ... + Bulan Aktif)
+     */
+    function getAccumulatedOverdue(roomId, currentMonthStr) {
+      const room = appData.rooms.find(r => r.id === roomId);
+      if (!room) return { totalAccumulated: 0, unpaidMonths: [], breakdownText: 'Rp 0', oldestMonthStr: currentMonthStr };
+
+      const allMonthsSet = new Set();
+
+      if (room.tenantsHistory) {
+        Object.keys(room.tenantsHistory).forEach(m => {
+          if (m <= currentMonthStr) allMonthsSet.add(m);
+        });
+      }
+      appData.payments.filter(p => p.roomId === roomId).forEach(p => {
+        if (p.month <= currentMonthStr) allMonthsSet.add(p.month);
+      });
+      allMonthsSet.add(currentMonthStr);
+
+      const sortedMonths = Array.from(allMonthsSet).sort();
+
+      let totalAccumulated = 0;
+      let unpaidMonths = [];
+
+      sortedMonths.forEach(m => {
+        const state = getRoomStateForMonth(room, m);
+        if (state && state.tenantName && state.tenantName.trim() !== '') {
+          const payState = getRoomPaymentStatus(roomId, m);
+          if (payState.remaining > 0) {
+            totalAccumulated += payState.remaining;
+            unpaidMonths.push({
+              month: m,
+              monthFormatted: formatMonthLabel(m),
+              remaining: payState.remaining,
+              targetPrice: payState.targetPrice,
+              totalPaid: payState.totalPaid
+            });
+          }
+        }
+      });
+
+      const breakdownText = unpaidMonths.length > 0
+        ? unpaidMonths.map(u => `${u.monthFormatted}: ${formatRupiah(u.remaining)}`).join(' + ')
+        : 'Lunas';
+
+      return {
+        totalAccumulated,
+        unpaidMonths,
+        breakdownText,
+        oldestMonthStr: unpaidMonths.length > 0 ? unpaidMonths[0].month : currentMonthStr,
+        oldestDueDateDay: unpaidMonths.length > 0 ? (getRoomStateForMonth(room, unpaidMonths[0].month)?.dueDateDay || 5) : 5
+      };
+    }
+
+    function calculateOverdueDetails(dueDateDay, monthStr) {
+      if (!dueDateDay) dueDateDay = 5;
+      
+      const [year, month] = monthStr.split('-').map(Number);
+      const dueDate = new Date(year, month - 1, dueDateDay);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      dueDate.setHours(0, 0, 0, 0);
+
+      const diffTime = today - dueDate;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays <= 0) {
+        return {
+          isOverdue: false,
+          diffDays: diffDays,
+          displayText: diffDays === 0 ? "Jatuh Tempo Hari Ini" : `H-${Math.abs(diffDays)} Tempo`
+        };
+      }
+
+      let months = Math.floor(diffDays / 30);
+      let remDays = diffDays % 30;
+      let weeks = Math.floor(remDays / 7);
+      let days = remDays % 7;
+
+      let parts = [];
+      if (months > 0) parts.push(`${months} bln`);
+      if (weeks > 0) parts.push(`${weeks} w`);
+      if (days > 0) parts.push(`${days} hr`);
+
+      let text = parts.length > 0 ? parts.join(' ') : '1 hr';
+
+      return {
+        isOverdue: true,
+        diffDays: diffDays,
+        displayText: text
+      };
+    }
+
+    /**
+     * UTILITY FUNCTION: SORTING FOR BLOCKS, FLOORS & ROOMS
      */
     function getSortedFloors() {
       if (!appData || !appData.floors) return [];
@@ -733,19 +836,15 @@
         const blockA = (appData.blocks.find(blk => blk.id === a.blockId)?.name || '').toLowerCase();
         const blockB = (appData.blocks.find(blk => blk.id === b.blockId)?.name || '').toLowerCase();
 
-        // 1. Urutkan berdasarkan Nama Blok (Alfabetis + Numerik)
         const blockCompare = blockA.localeCompare(blockB, undefined, { numeric: true, sensitivity: 'base' });
         if (blockCompare !== 0) return blockCompare;
 
-        // 2. Jika Blok Sama, Urutkan berdasarkan Nomor Lantai (Ascending 1, 2, 3...)
         return Number(a.floorNumber || 0) - Number(b.floorNumber || 0);
       });
     }
 
     /**
-     * DUAL SYNC TELEGRAM SYSTEM:
-     * 1) TEKS LZ-STRING COMPRESSED (sendMessage + pinChatMessage)
-     * 2) DOKUMEN ARSIP FISIK (sendDocument .json)
+     * DUAL SYNC TELEGRAM SYSTEM
      */
     async function autoSendTelegramDualSync(silent = true) {
       const token = appData.settings ? appData.settings.telegramToken : DEFAULT_DATA.settings.telegramToken;
@@ -813,7 +912,7 @@
         console.error("Dual Sync File Error:", docErr);
       } finally {
         if (spinIcon) spinIcon.classList.remove('animate-spin');
-        if (!silent) showToast("Dual Sync Telegram (Teks Pinned + File .JSON) Berhasil!", "success");
+        if (!silent) showToast("Dual Sync Telegram Berhasil!", "success");
       }
     }
 
@@ -958,7 +1057,7 @@
       if (!select) return;
       const currentVal = select.value;
 
-      let html = '<option value="ALL">Semua Blok & Lantai (Urut Rapi A-Z)</option>';
+      let html = '<option value="ALL">Semua Blok & Lantai (Urut Rapi)</option>';
       const sortedFloors = getSortedFloors();
 
       sortedFloors.forEach(floor => {
@@ -976,17 +1075,19 @@
     }
 
     function getRoomPaymentStatus(roomId, monthStr) {
+      const room = appData.rooms.find(r => r.id === roomId);
+      const roomState = getRoomStateForMonth(room, monthStr);
+
       const payments = appData.payments.filter(p => p.roomId === roomId && p.month === monthStr);
       const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-      const room = appData.rooms.find(r => r.id === roomId);
-      const targetPrice = room ? Number(room.customPrice || 0) : 0;
+      const targetPrice = roomState ? Number(roomState.customPrice || 0) : 0;
 
-      const remaining = targetPrice - totalPaid;
+      const remaining = Math.max(0, targetPrice - totalPaid);
 
       if (totalPaid >= targetPrice && targetPrice > 0) {
         return { status: 'PAID', totalPaid, remaining: 0, targetPrice };
       } else if (totalPaid > 0) {
-        return { status: 'PARTIAL', totalPaid, remaining: Math.max(0, remaining), targetPrice };
+        return { status: 'PARTIAL', totalPaid, remaining, targetPrice };
       } else {
         return { status: 'UNPAID', totalPaid: 0, remaining: targetPrice, targetPrice };
       }
@@ -995,17 +1096,23 @@
     function renderStats() {
       const currentMonth = getSelectedMonth();
       const totalRooms = appData.rooms.length;
-      const occupiedRooms = appData.rooms.filter(r => r.tenantName && r.tenantName.trim() !== '').length;
+      let occupiedRooms = 0;
 
       let totalCollected = 0;
-      let totalRemaining = 0;
+      let totalAccumulatedRemaining = 0;
       let unpaidCount = 0;
 
       appData.rooms.forEach(r => {
-        if (r.tenantName && r.tenantName.trim() !== '') {
+        const state = getRoomStateForMonth(r, currentMonth);
+        const isOccupied = state && state.tenantName && state.tenantName.trim() !== '';
+
+        if (isOccupied) {
+          occupiedRooms++;
           const payState = getRoomPaymentStatus(r.id, currentMonth);
           totalCollected += payState.totalPaid;
-          totalRemaining += payState.remaining;
+
+          const accum = getAccumulatedOverdue(r.id, currentMonth);
+          totalAccumulatedRemaining += accum.totalAccumulated;
 
           if (payState.status !== 'PAID') {
             unpaidCount++;
@@ -1019,7 +1126,7 @@
 
       document.getElementById('statUnpaidRooms').innerText = unpaidCount;
       document.getElementById('statTotalCollected').innerText = formatRupiah(totalCollected);
-      document.getElementById('statTotalRemaining').innerText = formatRupiah(totalRemaining);
+      document.getElementById('statTotalRemaining').innerText = formatRupiah(totalAccumulatedRemaining);
 
       const navBadge = document.getElementById('navBadgeMenunggak');
       if (navBadge) {
@@ -1037,7 +1144,31 @@
       const statusFilter = document.getElementById('filterStatusSelect').value;
       const currentMonth = getSelectedMonth();
 
-      // Gunakan Lantai yang Sudah Tersusun Rapi (Blok A -> B, Lantai 1 -> 2)
+      if (appData.rooms.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 border border-slate-200 text-center space-y-4 shadow-xs max-w-md mx-auto my-6">
+            <div class="w-16 h-16 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-brand-100 shadow-xs">
+              <i class="fa-solid fa-house-medical font-bold"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-base">Belum Ada Data Kos</h3>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                Aplikasi siap digunakan tanpa data contoh. Anda dapat menambahkan struktur lantai/kamar pertama atau memulihkan data dari Telegram.
+              </p>
+            </div>
+            <div class="flex flex-col gap-2 pt-2">
+              <button onclick="openFloorModal()" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition">
+                <i class="fa-solid fa-plus"></i> Tambah Lantai & Kamar Pertama
+              </button>
+              <button onclick="restoreDirectFromTelegramChannel()" class="w-full py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-cloud-arrow-down"></i> Restore Data dari Telegram
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
       let filteredFloors = getSortedFloors();
       if (floorFilter !== 'ALL') {
         filteredFloors = filteredFloors.filter(f => f.id === floorFilter);
@@ -1050,15 +1181,15 @@
         const blockName = block ? block.name : 'Blok';
 
         let floorRooms = appData.rooms.filter(r => r.floorId === floor.id);
-
-        // Urutkan Kamar secara numerik/alfabetis di dalam lantai
         floorRooms.sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true, sensitivity: 'base' }));
 
         floorRooms = floorRooms.filter(r => {
-          const matchSearch = r.number.toLowerCase().includes(searchQuery) || (r.tenantName && r.tenantName.toLowerCase().includes(searchQuery));
+          const roomState = getRoomStateForMonth(r, currentMonth);
+          const tenantName = roomState ? roomState.tenantName : '';
+          const matchSearch = r.number.toLowerCase().includes(searchQuery) || (tenantName && tenantName.toLowerCase().includes(searchQuery));
           if (!matchSearch) return false;
 
-          const isOccupied = r.tenantName && r.tenantName.trim() !== '';
+          const isOccupied = tenantName && tenantName.trim() !== '';
           const payState = getRoomPaymentStatus(r.id, currentMonth);
 
           if (statusFilter === 'OCCUPIED') return isOccupied;
@@ -1091,18 +1222,21 @@
         `;
 
         floorRooms.forEach(room => {
-          const type = appData.roomTypes.find(t => t.id === room.typeId);
+          const roomState = getRoomStateForMonth(room, currentMonth);
+          const type = appData.roomTypes.find(t => t.id === roomState.typeId);
           const typeName = type ? type.name : 'Standard';
-          const isOccupied = room.tenantName && room.tenantName.trim() !== '';
+          const isOccupied = roomState.tenantName && roomState.tenantName.trim() !== '';
           const payState = getRoomPaymentStatus(room.id, currentMonth);
+          const overdueInfo = calculateOverdueDetails(roomState.dueDateDay, currentMonth);
+          const accum = getAccumulatedOverdue(room.id, currentMonth);
 
           let statusBadge = '';
           if (!isOccupied) {
             statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-300">Kosong</span>`;
           } else if (payState.status === 'PAID') {
-            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">LUNAS</span>`;
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">LUNAS (${formatMonthLabel(currentMonth)})</span>`;
           } else if (payState.status === 'PARTIAL') {
-            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Dicicil (Sisa ${formatRupiah(payState.remaining)})</span>`;
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Dicicil</span>`;
           } else {
             statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">Menunggak</span>`;
           }
@@ -1117,20 +1251,41 @@
                   ${statusBadge}
                 </div>
 
-                <div class="space-y-1 mb-3 text-xs">
+                <div class="space-y-1.5 mb-3 text-xs">
                   <div class="flex justify-between text-slate-600">
-                    <span>Penghuni:</span>
-                    <span class="font-bold text-slate-900">${isOccupied ? room.tenantName : '<i class="text-slate-400 font-normal">Kosong</i>'}</span>
+                    <span>Penghuni (${formatMonthLabel(currentMonth)}):</span>
+                    <span class="font-bold text-slate-900">${isOccupied ? roomState.tenantName : '<i class="text-slate-400 font-normal">Kosong</i>'}</span>
                   </div>
                   <div class="flex justify-between text-slate-600">
                     <span>Tipe / Tarif:</span>
-                    <span class="font-semibold text-slate-800">${typeName} (${formatRupiah(room.customPrice)})</span>
+                    <span class="font-semibold text-slate-800">${typeName} (${formatRupiah(roomState.customPrice)})</span>
                   </div>
-                  ${isOccupied && room.dueDateDay ? `
+                  
+                  ${isOccupied ? `
                     <div class="flex justify-between text-slate-600">
                       <span>Jatuh Tempo:</span>
-                      <span class="font-medium text-slate-800">Tgl ${room.dueDateDay} Tiap Bulan</span>
+                      <span class="font-medium text-slate-800">Tgl ${roomState.dueDateDay || 5} Tiap Bulan</span>
                     </div>
+
+                    ${accum.totalAccumulated > 0 ? `
+                      <div class="bg-rose-50 border border-rose-200 rounded-lg p-2 mt-1 space-y-1">
+                        <div class="flex justify-between items-center text-[11px] font-bold text-rose-800">
+                          <span>Durasi Telat:</span>
+                          <span class="bg-rose-200 text-rose-900 px-1.5 py-0.5 rounded text-[10px]">
+                            ${overdueInfo.isOverdue ? `Telat ${overdueInfo.displayText}` : overdueInfo.displayText}
+                          </span>
+                        </div>
+                        <div class="text-[11px] text-rose-900 pt-0.5 border-t border-rose-200">
+                          <div class="flex justify-between font-extrabold">
+                            <span>Total Akumulasi Utang:</span>
+                            <span class="text-rose-700">${formatRupiah(accum.totalAccumulated)}</span>
+                          </div>
+                          <p class="text-[10px] text-rose-600 font-normal mt-0.5 leading-tight">
+                            <b>Rincian Per Bulan:</b> ${accum.breakdownText}
+                          </p>
+                        </div>
+                      </div>
+                    ` : ''}
                   ` : ''}
                 </div>
               </div>
@@ -1140,13 +1295,13 @@
                   <button onclick="openPaymentModal('${room.id}')" class="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow-xs transition">
                     <i class="fa-solid fa-wallet"></i> Bayar
                   </button>
-                  ${room.tenantPhone ? `
-                    <a href="https://wa.me/${formatWaNumber(room.tenantPhone)}" target="_blank" class="py-1.5 px-2.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg text-xs font-bold flex items-center justify-center transition border border-emerald-300" title="Hubungi WA">
+                  ${roomState.tenantPhone ? `
+                    <a href="https://wa.me/${formatWaNumber(roomState.tenantPhone)}?text=${encodeURIComponent(buildWaText(room, roomState, currentMonth, payState, overdueInfo, accum))}" target="_blank" class="py-1.5 px-2.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg text-xs font-bold flex items-center justify-center transition border border-emerald-300" title="Hubungi WA Tagihan">
                       <i class="fa-brands fa-whatsapp text-sm"></i>
                     </a>
                   ` : ''}
                 ` : ''}
-                <button onclick="openTenantModal('${room.id}')" class="py-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold border border-slate-300 transition" title="Edit Kamar & Penghuni">
+                <button onclick="openTenantModal('${room.id}')" class="py-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold border border-slate-300 transition" title="Edit Kamar & Penghuni Bulan Ini">
                   <i class="fa-solid fa-user-pen"></i> Edit
                 </button>
               </div>
@@ -1172,6 +1327,27 @@
       container.innerHTML = html;
     }
 
+    function buildWaText(room, roomState, currentMonth, payState, overdueInfo, accum) {
+      let text = `Halo Kak ${roomState.tenantName}, salam santun dari pengelola kos.\n\nMengingatkan rincian pembayaran sewa kos *Kamar ${room.number}*:\n`;
+      
+      if (accum.unpaidMonths.length > 1) {
+        text += `\n📌 *Rincian Tunggakan Per Bulan:*\n`;
+        accum.unpaidMonths.forEach((u, idx) => {
+          text += `${idx + 1}. *${u.monthFormatted}*: ${formatRupiah(u.remaining)}\n`;
+        });
+      } else if (accum.unpaidMonths.length === 1) {
+        text += `• Tagihan Bulan *${accum.unpaidMonths[0].monthFormatted}*: ${formatRupiah(accum.unpaidMonths[0].remaining)}\n`;
+      }
+
+      if (overdueInfo.isOverdue) {
+        text += `• Status Keterlambatan: *Telat ${overdueInfo.displayText}*\n`;
+      }
+
+      text += `\n💰 *TOTAL AKUMULASI UTANG: ${formatRupiah(accum.totalAccumulated)}*\n\n`;
+      text += `Mohon dapat segera melakukan konfirmasi atau pelunasan via transfer/cash. Terima kasih banyak 🙏`;
+      return text;
+    }
+
     function renderOverdueTab() {
       const container = document.getElementById('overdueListContainer');
       if (!container) return;
@@ -1182,13 +1358,17 @@
       let unpaidCount = 0;
 
       appData.rooms.forEach(r => {
-        if (r.tenantName && r.tenantName.trim() !== '') {
+        const state = getRoomStateForMonth(r, currentMonth);
+        if (state && state.tenantName && state.tenantName.trim() !== '') {
           const payState = getRoomPaymentStatus(r.id, currentMonth);
-          if (payState.status === 'PAID') {
+          const accum = getAccumulatedOverdue(r.id, currentMonth);
+
+          if (accum.totalAccumulated === 0) {
             paidCount++;
           } else {
             unpaidCount++;
-            overdueRooms.push({ room: r, payState });
+            const overdueInfo = calculateOverdueDetails(state.dueDateDay, currentMonth);
+            overdueRooms.push({ room: r, state, payState, overdueInfo, accum });
           }
         }
       });
@@ -1201,36 +1381,50 @@
         html = `
           <div class="text-center py-8 text-slate-400 space-y-2">
             <i class="fa-solid fa-circle-check text-4xl text-emerald-500"></i>
-            <p class="text-xs text-slate-600 font-bold">Luar biasa! Semua kamar terisi sudah lunas bulan ini.</p>
+            <p class="text-xs text-slate-600 font-bold">Luar biasa! Semua kamar terisi sudah lunas untuk bulan ${formatMonthLabel(currentMonth)}.</p>
           </div>
         `;
       } else {
         overdueRooms.forEach(item => {
           const r = item.room;
           const st = item.payState;
+          const roomState = item.state;
+          const overdueInfo = item.overdueInfo;
+          const accum = item.accum;
 
           html += `
-            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <div class="flex items-center gap-2">
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-extrabold text-slate-900 text-sm">${r.number}</span>
-                  <span class="font-bold text-slate-800 text-xs">- ${r.tenantName}</span>
+                  <span class="font-bold text-slate-800 text-xs">- ${roomState.tenantName}</span>
+                  <span class="bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                    ${overdueInfo.isOverdue ? `Telat ${overdueInfo.displayText}` : overdueInfo.displayText}
+                  </span>
                 </div>
-                <p class="text-[11px] text-slate-500 mt-0.5">
-                  Tagihan: <b>${formatRupiah(st.targetPrice)}</b> | Sudah Bayar: <b class="text-emerald-700">${formatRupiah(st.totalPaid)}</b>
+                
+                <p class="text-[11px] text-slate-600">
+                  Tagihan Bulan Ini (${formatMonthLabel(currentMonth)}): <b>${formatRupiah(st.targetPrice)}</b> | Sisa Bulan Ini: <b class="text-amber-700">${formatRupiah(st.remaining)}</b>
                 </p>
-                <p class="text-xs font-bold text-rose-600 mt-0.5">
-                  Kurang Bayar: ${formatRupiah(st.remaining)}
-                </p>
+
+                <div class="bg-rose-50 border border-rose-200 rounded-lg p-2 text-xs space-y-0.5">
+                  <div class="flex items-center justify-between font-extrabold text-rose-800">
+                    <span><i class="fa-solid fa-sack-dollar text-rose-500 mr-1"></i> Total Akumulasi Utang:</span>
+                    <span class="text-rose-700 text-sm">${formatRupiah(accum.totalAccumulated)}</span>
+                  </div>
+                  <p class="text-[10px] text-rose-700 font-medium">
+                    <b>Penjumlahan Per Bulan:</b> ${accum.breakdownText}
+                  </p>
+                </div>
               </div>
 
-              <div class="flex items-center gap-2">
-                ${r.tenantPhone ? `
-                  <a href="https://wa.me/${formatWaNumber(r.tenantPhone)}?text=${encodeURIComponent(`Halo ${r.tenantName}, mengingatkan pembayaran sewa kos ${r.number} bulan ini sisa ${formatRupiah(st.remaining)}. Terima kasih.`)}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs">
-                    <i class="fa-brands fa-whatsapp"></i> Tagih WA
+              <div class="flex items-center gap-2 shrink-0">
+                ${roomState.tenantPhone ? `
+                  <a href="https://wa.me/${formatWaNumber(roomState.tenantPhone)}?text=${encodeURIComponent(buildWaText(r, roomState, currentMonth, st, overdueInfo, accum))}" target="_blank" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-xs transition">
+                    <i class="fa-brands fa-whatsapp text-sm"></i> Tagih WA
                   </a>
                 ` : ''}
-                <button onclick="openPaymentModal('${r.id}')" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs">
+                <button onclick="openPaymentModal('${r.id}')" class="px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-xs transition">
                   <i class="fa-solid fa-wallet"></i> Bayar
                 </button>
               </div>
@@ -1281,7 +1475,11 @@
 
       let html = '';
       appData.roomTypes.forEach(t => {
-        const count = appData.rooms.filter(r => r.typeId === t.id).length;
+        const currentMonth = getSelectedMonth();
+        const count = appData.rooms.filter(r => {
+          const st = getRoomStateForMonth(r, currentMonth);
+          return st && st.typeId === t.id;
+        }).length;
 
         html += `
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3 flex flex-col justify-between">
@@ -1315,29 +1513,34 @@
 
       const sortedFloors = getSortedFloors();
       let html = '';
-      sortedFloors.forEach(f => {
-        const block = appData.blocks.find(b => b.id === f.blockId);
-        const blockName = block ? block.name : 'Blok';
-        const type = appData.roomTypes.find(t => t.id === f.defaultTypeId);
-        const typeName = type ? type.name : 'Standard';
 
-        html += `
-          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-            <div>
-              <h4 class="font-bold text-slate-900 text-xs">${blockName} - Lantai ${f.floorNumber}</h4>
-              <p class="text-[11px] text-slate-500">Kamar: ${f.roomCount} | Prefix: "${f.prefix}" | Tipe Default: ${typeName}</p>
+      if (sortedFloors.length === 0) {
+        html = `<p class="text-xs text-slate-400 italic p-2 text-center">Belum ada struktur lantai dibuat.</p>`;
+      } else {
+        sortedFloors.forEach(f => {
+          const block = appData.blocks.find(b => b.id === f.blockId);
+          const blockName = block ? block.name : 'Blok';
+          const type = appData.roomTypes.find(t => t.id === f.defaultTypeId);
+          const typeName = type ? type.name : 'Standard';
+
+          html += `
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+              <div>
+                <h4 class="font-bold text-slate-900 text-xs">${blockName} - Lantai ${f.floorNumber}</h4>
+                <p class="text-[11px] text-slate-500">Kamar: ${f.roomCount} | Prefix: "${f.prefix}" | Tipe Default: ${typeName}</p>
+              </div>
+              <div class="flex gap-1">
+                <button onclick="openFloorModal('${f.id}')" class="px-2.5 py-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs rounded-lg">
+                  <i class="fa-solid fa-gear"></i> Edit
+                </button>
+                <button onclick="requestDoubleConfirmation('Hapus Lantai Ini', 'Seluruh kamar di lantai ini akan dihapus permanen!', () => deleteFloor('${f.id}'))" class="px-2.5 py-1.5 bg-rose-50 border border-rose-200 text-rose-700 font-bold text-xs rounded-lg">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
             </div>
-            <div class="flex gap-1">
-              <button onclick="openFloorModal('${f.id}')" class="px-2.5 py-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs rounded-lg">
-                <i class="fa-solid fa-gear"></i> Edit
-              </button>
-              <button onclick="requestDoubleConfirmation('Hapus Lantai Ini', 'Seluruh kamar di lantai ini akan dihapus permanen!', () => deleteFloor('${f.id}'))" class="px-2.5 py-1.5 bg-rose-50 border border-rose-200 text-rose-700 font-bold text-xs rounded-lg">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      });
+          `;
+        });
+      }
 
       container.innerHTML = html;
     }
@@ -1360,15 +1563,17 @@
       const room = appData.rooms.find(r => r.id === roomId);
       if (!room) return;
 
+      const currentMonth = getSelectedMonth();
+      const roomState = getRoomStateForMonth(room, currentMonth);
+
       document.getElementById('payRoomId').value = room.id;
       document.getElementById('payRoomLabel').innerText = `Kamar ${room.number}`;
-      document.getElementById('payTenantLabel').innerText = room.tenantName || 'Penghuni';
-      document.getElementById('payMonthlyPriceLabel').innerText = formatRupiah(room.customPrice);
+      document.getElementById('payTenantLabel').innerText = roomState.tenantName || 'Penghuni';
+      document.getElementById('payMonthlyPriceLabel').innerText = formatRupiah(roomState.customPrice);
 
-      const currentMonth = getSelectedMonth();
       const payState = getRoomPaymentStatus(room.id, currentMonth);
 
-      document.getElementById('payAmountInput').value = payState.remaining > 0 ? payState.remaining : room.customPrice;
+      document.getElementById('payAmountInput').value = payState.remaining > 0 ? payState.remaining : roomState.customPrice;
       document.getElementById('payDateInput').value = new Date().toISOString().slice(0, 10);
       document.getElementById('payNoteInput').value = '';
 
@@ -1382,10 +1587,11 @@
       if (!room) return;
 
       const currentMonth = getSelectedMonth();
+      const roomState = getRoomStateForMonth(room, currentMonth);
       const payState = getRoomPaymentStatus(room.id, currentMonth);
 
       const inputVal = Number(document.getElementById('payAmountInput').value || 0);
-      const target = Number(room.customPrice || 0);
+      const target = Number(roomState.customPrice || 0);
 
       const newTotalPaid = payState.totalPaid + inputVal;
       const remaining = Math.max(0, target - newTotalPaid);
@@ -1411,7 +1617,7 @@
       const note = document.getElementById('payNoteInput').value;
       const currentMonth = getSelectedMonth();
 
-      requestDoubleConfirmation('Simpan Pembayaran', `Catat pembayaran Rp ${amount.toLocaleString('id-ID')} untuk bulan ini?`, () => {
+      requestDoubleConfirmation('Simpan Pembayaran', `Catat pembayaran Rp ${amount.toLocaleString('id-ID')} untuk bulan ${formatMonthLabel(currentMonth)}?`, () => {
         appData.payments.push({
           id: `pay-${Date.now()}`,
           roomId,
@@ -1434,13 +1640,17 @@
       const room = appData.rooms.find(r => r.id === roomId);
       if (!room) return;
 
+      const currentMonth = getSelectedMonth();
+      const roomState = getRoomStateForMonth(room, currentMonth);
+
       document.getElementById('editRoomId').value = room.id;
+      document.getElementById('editModalMonthLabel').innerText = formatMonthLabel(currentMonth);
       document.getElementById('editRoomNumber').value = room.number;
-      document.getElementById('editRoomPrice').value = room.customPrice;
-      document.getElementById('editTenantName').value = room.tenantName || '';
-      document.getElementById('editTenantPhone').value = room.tenantPhone || '';
-      document.getElementById('editEntryDate').value = room.entryDate || '';
-      document.getElementById('editDueDateDay').value = room.dueDateDay || 5;
+      document.getElementById('editRoomPrice').value = roomState.customPrice;
+      document.getElementById('editTenantName').value = roomState.tenantName || '';
+      document.getElementById('editTenantPhone').value = roomState.tenantPhone || '';
+      document.getElementById('editEntryDate').value = roomState.entryDate || '';
+      document.getElementById('editDueDateDay').value = roomState.dueDateDay || 5;
 
       const typeSelect = document.getElementById('editRoomTypeSelect');
       let html = '';
@@ -1448,7 +1658,7 @@
         html += `<option value="${t.id}">${t.name} (${formatRupiah(t.price)})</option>`;
       });
       typeSelect.innerHTML = html;
-      typeSelect.value = room.typeId || appData.roomTypes[0].id;
+      typeSelect.value = roomState.typeId || appData.roomTypes[0].id;
 
       openModal('tenantModal');
     }
@@ -1467,33 +1677,49 @@
       const room = appData.rooms.find(r => r.id === roomId);
       if (!room) return;
 
-      requestDoubleConfirmation('Simpan Data Kamar', 'Perbarui detail kamar dan data penghuni?', () => {
+      const currentMonth = getSelectedMonth();
+
+      requestDoubleConfirmation('Simpan Data Penghuni Bulan Ini', `Perbarui data penghuni untuk bulan ${formatMonthLabel(currentMonth)}?`, () => {
         room.number = document.getElementById('editRoomNumber').value.trim();
-        room.typeId = document.getElementById('editRoomTypeSelect').value;
-        room.customPrice = Number(document.getElementById('editRoomPrice').value || 0);
-        room.tenantName = document.getElementById('editTenantName').value.trim();
-        room.tenantPhone = document.getElementById('editTenantPhone').value.trim();
-        room.entryDate = document.getElementById('editEntryDate').value;
-        room.dueDateDay = Number(document.getElementById('editDueDateDay').value || 5);
+
+        if (!room.tenantsHistory) room.tenantsHistory = {};
+
+        room.tenantsHistory[currentMonth] = {
+          tenantName: document.getElementById('editTenantName').value.trim(),
+          tenantPhone: document.getElementById('editTenantPhone').value.trim(),
+          entryDate: document.getElementById('editEntryDate').value,
+          dueDateDay: Number(document.getElementById('editDueDateDay').value || 5),
+          customPrice: Number(document.getElementById('editRoomPrice').value || 0),
+          typeId: document.getElementById('editRoomTypeSelect').value
+        };
 
         saveDataToStorage(true);
         closeModal('tenantModal');
         renderAll();
-        showToast("Data kamar berhasil diperbarui & disinkronkan!", "success");
+        showToast(`Data kamar bulan ${formatMonthLabel(currentMonth)} berhasil disimpan!`, "success");
       });
     }
 
     function clearTenantFromRoom() {
       const roomId = document.getElementById('editRoomId').value;
       const room = appData.rooms.find(r => r.id === roomId);
+      const currentMonth = getSelectedMonth();
+
       if (room) {
-        room.tenantName = '';
-        room.tenantPhone = '';
-        room.entryDate = '';
+        if (!room.tenantsHistory) room.tenantsHistory = {};
+        const currentState = getRoomStateForMonth(room, currentMonth);
+
+        room.tenantsHistory[currentMonth] = {
+          ...currentState,
+          tenantName: '',
+          tenantPhone: '',
+          entryDate: ''
+        };
+
         saveDataToStorage(true);
         closeModal('tenantModal');
         renderAll();
-        showToast("Kamar telah dikosongkan.", "success");
+        showToast(`Kamar ${room.number} dikosongkan untuk bulan ${formatMonthLabel(currentMonth)}.`, "success");
       }
     }
 
@@ -1571,7 +1797,6 @@
       const defaultTypeSelect = document.getElementById('floorDefaultTypeSelect');
 
       let datalistHtml = '';
-      // Urutkan blok untuk pilihan datalist
       const sortedBlocks = [...appData.blocks].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
       sortedBlocks.forEach(b => {
         datalistHtml += `<option value="${b.name}">`;
@@ -1619,7 +1844,6 @@
       }
 
       requestDoubleConfirmation('Generasi Struktur Kamar', 'Kamar akan di-generate/diperbarui untuk lantai ini.', () => {
-        // Cari atau buat blok baru jika belum ada
         let block = appData.blocks.find(b => b.name.toLowerCase() === blockNameInput.toLowerCase());
         if (!block) {
           block = {
@@ -1665,10 +1889,7 @@
               number: roomNum,
               typeId: defaultTypeId,
               customPrice: defaultPrice,
-              tenantName: '',
-              tenantPhone: '',
-              entryDate: '',
-              dueDateDay: 5
+              tenantsHistory: {}
             });
           }
         }
@@ -1809,10 +2030,9 @@
     function resetDataToDefault() {
       localStorage.removeItem('kosku_manager_db');
       appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
-      generateSampleRoomsIfEmpty();
       saveDataToStorage(true);
       renderAll();
-      showToast("Data kos telah di-reset ke setelan awal.", "success");
+      showToast("Data kos telah di-reset ke kondisi awal (bersih).", "success");
     }
   </script>
 
